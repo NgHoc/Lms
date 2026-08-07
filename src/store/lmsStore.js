@@ -1,20 +1,28 @@
 import { COURSES as initialCourses, LESSONS as initialLessons, MOCK_QUESTIONS as initialQuestions } from '../mockData';
 
 // Keys for LocalStorage
-const STORAGE_KEYS = {
-  COURSES: 'lms_courses_v1',
-  LESSONS: 'lms_lessons_v1',
-  QUESTIONS: 'lms_questions_v1',
-  HISTORY: 'lms_history_v1'
+export const STORAGE_KEYS = {
+  COURSES: 'lms_courses_v2',
+  LESSONS: 'lms_lessons_v2',
+  QUESTIONS: 'lms_questions_v2',
+  HISTORY: 'lms_history_v2'
 };
 
-// Initialize State from LocalStorage or default mockData
+// Clear legacy v1 mock cache if present in user's browser
+try {
+  localStorage.removeItem('lms_courses_v1');
+  localStorage.removeItem('lms_lessons_v1');
+  localStorage.removeItem('lms_questions_v1');
+  localStorage.removeItem('lms_history_v1');
+} catch (e) {}
+
+// Initialize State from LocalStorage or empty arrays
 export function getInitialCourses() {
   const saved = localStorage.getItem(STORAGE_KEYS.COURSES);
   if (saved) {
     try { return JSON.parse(saved); } catch (e) {}
   }
-  return initialCourses;
+  return initialCourses || [];
 }
 
 export function getInitialLessons() {
@@ -22,7 +30,7 @@ export function getInitialLessons() {
   if (saved) {
     try { return JSON.parse(saved); } catch (e) {}
   }
-  return initialLessons;
+  return initialLessons || [];
 }
 
 export function getInitialQuestions() {
@@ -30,7 +38,7 @@ export function getInitialQuestions() {
   if (saved) {
     try { return JSON.parse(saved); } catch (e) {}
   }
-  return initialQuestions;
+  return initialQuestions || [];
 }
 
 export function saveCoursesToStorage(courses) {
@@ -43,4 +51,11 @@ export function saveLessonsToStorage(lessons) {
 
 export function saveQuestionsToStorage(questions) {
   localStorage.setItem(STORAGE_KEYS.QUESTIONS, JSON.stringify(questions));
+}
+
+export function clearAllStorageData() {
+  localStorage.removeItem(STORAGE_KEYS.COURSES);
+  localStorage.removeItem(STORAGE_KEYS.LESSONS);
+  localStorage.removeItem(STORAGE_KEYS.QUESTIONS);
+  localStorage.removeItem(STORAGE_KEYS.HISTORY);
 }

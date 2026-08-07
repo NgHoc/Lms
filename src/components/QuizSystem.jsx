@@ -434,68 +434,80 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                 Bước 1: Chọn Học Phần ({courses.length} Học Phần Hiện Có)
               </label>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                {courses.map(course => {
-                  const isSelected = selectedCourseId === course.id;
-                  const cLessonCount = lessons.filter(l => l.courseId === course.id).length;
-                  const cQuestionCount = course.questionsCount || questions.filter(q => lessons.filter(l => l.courseId === course.id).map(l => l.id).includes(q.lessonId)).length;
+              {courses.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem', color: '#94a3b8', border: '2px dashed #cbd5e1', borderRadius: '16px', backgroundColor: '#f8fafc' }}>
+                  <BookOpen size={44} style={{ marginBottom: '0.75rem', opacity: 0.4, color: '#4f46e5' }} />
+                  <p style={{ fontWeight: 800, color: '#1e293b', fontSize: '1rem', marginBottom: '0.35rem' }}>
+                    Chưa có học phần nào trong cơ sở dữ liệu
+                  </p>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b', maxWidth: '460px', margin: '0 auto' }}>
+                    Vui lòng chuyển sang tab <strong>"Quản Lý Nội Dung"</strong> để tự tạo hoặc tab <strong>"Upload & Bóc Tách"</strong> để nhập file Word đề thi vào hệ thống.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                  {courses.map(course => {
+                    const isSelected = selectedCourseId === course.id;
+                    const cLessonCount = lessons.filter(l => l.courseId === course.id).length;
+                    const cQuestionCount = course.questionsCount || questions.filter(q => lessons.filter(l => l.courseId === course.id).map(l => l.id).includes(q.lessonId)).length;
 
-                  return (
-                    <div
-                      key={course.id}
-                      onClick={() => setSelectedCourseId(course.id)}
-                      className={`lms-card-interactive ${isSelected ? 'selected' : ''}`}
-                      style={{
-                        padding: '1.25rem 1.35rem',
-                        borderWidth: isSelected ? '2px' : '1.5px'
-                      }}
-                    >
-                      {isSelected && (
+                    return (
+                      <div
+                        key={course.id}
+                        onClick={() => setSelectedCourseId(course.id)}
+                        className={`lms-card-interactive ${isSelected ? 'selected' : ''}`}
+                        style={{
+                          padding: '1.25rem 1.35rem',
+                          borderWidth: isSelected ? '2px' : '1.5px'
+                        }}
+                      >
+                        {isSelected && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'var(--primary-gradient)',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 6px rgba(79, 70, 229, 0.4)'
+                          }}>
+                            <Check size={14} strokeWidth={3} />
+                          </div>
+                        )}
+
                         <div style={{
-                          position: 'absolute',
-                          top: '12px',
-                          right: '12px',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: 'var(--primary-gradient)',
-                          color: '#fff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 2px 6px rgba(79, 70, 229, 0.4)'
+                          display: 'inline-block',
+                          fontWeight: 800,
+                          color: '#4f46e5',
+                          fontSize: '0.78rem',
+                          backgroundColor: '#eef2ff',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          marginBottom: '0.5rem',
+                          border: '1px solid #c7d2fe'
                         }}>
-                          <Check size={14} strokeWidth={3} />
+                          {course.code}
                         </div>
-                      )}
 
-                      <div style={{
-                        display: 'inline-block',
-                        fontWeight: 800,
-                        color: '#4f46e5',
-                        fontSize: '0.78rem',
-                        backgroundColor: '#eef2ff',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        marginBottom: '0.5rem',
-                        border: '1px solid #c7d2fe'
-                      }}>
-                        {course.code}
-                      </div>
+                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.35, marginBottom: '0.5rem' }}>
+                          {course.title}
+                        </div>
 
-                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.35, marginBottom: '0.5rem' }}>
-                        {course.title}
+                        <div style={{ fontSize: '0.82rem', color: '#64748b', display: 'flex', gap: '0.75rem', fontWeight: 600 }}>
+                          <span>📖 {cLessonCount} bài học</span>
+                          <span>•</span>
+                          <span>❓ {cQuestionCount} câu hỏi</span>
+                        </div>
                       </div>
-
-                      <div style={{ fontSize: '0.82rem', color: '#64748b', display: 'flex', gap: '0.75rem', fontWeight: 600 }}>
-                        <span>📖 {cLessonCount} bài học</span>
-                        <span>•</span>
-                        <span>❓ {cQuestionCount} câu hỏi</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Step 2: Select 3 Test Modes */}
@@ -702,8 +714,15 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
             <div style={{ textAlign: 'center', marginTop: '2rem' }}>
               <button
                 onClick={handleStartTest}
+                disabled={courses.length === 0 || !selectedCourseId || questions.length === 0}
                 className="btn-primary"
-                style={{ fontSize: '1.05rem', padding: '1rem 3.5rem', borderRadius: '9999px' }}
+                style={{
+                  fontSize: '1.05rem',
+                  padding: '1rem 3.5rem',
+                  borderRadius: '9999px',
+                  opacity: (courses.length === 0 || !selectedCourseId || questions.length === 0) ? 0.5 : 1,
+                  cursor: (courses.length === 0 || !selectedCourseId || questions.length === 0) ? 'not-allowed' : 'pointer'
+                }}
               >
                 <Play size={22} /> Bắt Đầu Làm Bài Test Ngay
               </button>
