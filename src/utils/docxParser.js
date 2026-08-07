@@ -67,6 +67,10 @@ export async function parseDocxFile(file) {
         !nodes[i].isTFLabel &&
         !looksLikeOptionStart(nodes, i)
       ) {
+        // If this paragraph is a semicolon-separated keyword list (drag bank), break to capture it
+        if (nodes[i].text.includes(";") && !nodes[i].text.includes(":") && nodes[i].text.split(";").length >= 2) {
+          break;
+        }
         questionContent += "\n" + nodes[i].text;
         i++;
       }
@@ -221,6 +225,7 @@ export async function parseDocxFile(file) {
       });
 
       if (allRedKeywords.length > 0) {
+        const allItems = [...new Set([...explicitDragItems, ...allRedKeywords.map(b => b.answer)])];
         questions.push({
           rawText: node.text,
           content: questionContent,
@@ -228,7 +233,7 @@ export async function parseDocxFile(file) {
           dragMode: "inline",
           renderedTemplate: template,
           extractedBlanks: allRedKeywords,
-          dragItems: allRedKeywords.map(b => b.answer),
+          dragItems: shuffleArray(allItems),
           correctAnswers: Object.fromEntries(allRedKeywords.map(b => [b.blankId, b.answer]))
         });
         continue;
@@ -248,52 +253,87 @@ export async function parseDocxFile(file) {
 }
 
 // ─── Build DRAG_DROP question from a Word table ──────────────────────────────
-function buildDragDropFromTable(rawText, questionContent, tableData, explicitDragItems) {
-  const rows = tableData.rows;
+function buildDragDropFromTable(rawText, questionContent, tableData, explicitDragItems = []) {
+  const rows = tableData.rows || [];
   if (rows.length === 0) {
-    return { rawText, content: questionContent, parsedType: "DRAG_DROP", dragMode: "inline", renderedTemplate: questionContent, extractedBlanks: [], dragItems: [], correctAnswers: {} };
+    return {
+      rawText,
+      content: questionContent,
+      parsedType: "DRAG_DROP",
+      dragMode: "inline",
+      renderedTemplate: questionContent,
+      extractedBlanks: [],
+      dragItems: explicitDragItems,
+      correctAnswers: {}
+    };
   }
 
   const firstRow = rows[0];
+  const qContentLower = (questionContent || "").toLowerCase();
 
-  // Check if left cells in rows contain blank markers like ____ or _____
-  const hasBlankMarkers = rows.some(r => r[0] && /_{2,}|___+|\[.*?\]/.test(r[0].text));
+  // 1. Detect if it's a Categorize Table (Phân loại vào cột/nhóm)
+  // Signals:
+  // - Prompt has keywords like "vào cột", "phân loại", "vào nhóm", "phân nhóm"
+  // - Or Table has >= 2 columns, Row 0 has headers without red text, and no cell in table has blank markers like ___
+  const hasBlankMarkers = rows.some(r =>
+    r.some(c => /_{2,}|___+|\[.*?\]/.test(c.text))
+  );
 
-  if (!hasBlankMarkers && firstRow.length >= 2 && rows.length >= 2) {
-    // ── CATEGORIZE TABLE (Câu 13 type) ──────────────────────────────────────
+  const promptIndicatesCategorize =
+    qContentLower.includes("vào cột") ||
+    qContentLower.includes("phân loại") ||
+    qContentLower.includes("vào nhóm") ||
+    qContentLower.includes("phân nhóm") ||
+    qContentLower.includes("các cột");
+
+  // Check if multiple columns in subsequent rows have red text or multiple items
+  const hasMultiColRed = rows.slice(1).some(r =>
+    r.length >= 2 && r[0]?.hasRed && r[1]?.hasRed
+  );
+
+  const isCategorizeHeader =
+    (!hasBlankMarkers && firstRow.length >= 2 && rows.length >= 2 && !firstRow.some(c => c.hasRed)) ||
+    promptIndicatesCategorize ||
+    hasMultiColRed;
+
+  if (isCategorizeHeader) {
     const headers = firstRow.map(cell => cell.text.trim());
     const columns = headers.map((h, colIdx) => ({
       header: h,
       items: []
     }));
 
-    // Collect ONLY red text items from subsequent rows
     let totalRedItems = 0;
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r];
       row.forEach((cell, colIdx) => {
         if (colIdx < columns.length) {
-          cell.redTexts.forEach(rt => {
-            const cleanText = rt.trim();
-            if (cleanText && !columns[colIdx].items.includes(cleanText)) {
-              columns[colIdx].items.push(cleanText);
-              totalRedItems++;
-            }
-          });
+          if (cell.redTexts && cell.redTexts.length > 0) {
+            cell.redTexts.forEach(rt => {
+              const lines = rt.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+              lines.forEach(line => {
+                const cleanText = line.replace(/^[•\-\*\+\d+\.]\s*/, '').trim();
+                if (cleanText && !columns[colIdx].items.includes(cleanText)) {
+                  columns[colIdx].items.push(cleanText);
+                  totalRedItems++;
+                }
+              });
+            });
+          }
         }
       });
     }
 
-    // Fallback: If no red texts found in row >= 1, collect all text paragraphs from row >= 1
     if (totalRedItems === 0) {
       for (let r = 1; r < rows.length; r++) {
         const row = rows[r];
         row.forEach((cell, colIdx) => {
           if (colIdx < columns.length && cell.text.trim()) {
-            const lines = cell.text.split('\n').map(l => l.trim()).filter(Boolean);
+            const lines = cell.text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
             lines.forEach(line => {
-              if (line && !columns[colIdx].items.includes(line)) {
-                columns[colIdx].items.push(line);
+              const cleanText = line.replace(/^[•\-\*\+\d+\.]\s*/, '').trim();
+              if (cleanText && !columns[colIdx].items.includes(cleanText)) {
+                columns[colIdx].items.push(cleanText);
               }
             });
           }
@@ -301,7 +341,6 @@ function buildDragDropFromTable(rawText, questionContent, tableData, explicitDra
       }
     }
 
-    // Build drag items and blanks
     const allItems = columns.flatMap(col => col.items);
     const correctAnswers = {};
     const extractedBlanks = [];
@@ -313,6 +352,13 @@ function buildDragDropFromTable(rawText, questionContent, tableData, explicitDra
       });
     });
 
+    let dragPool = [...allItems];
+    if (explicitDragItems && explicitDragItems.length > 0) {
+      explicitDragItems.forEach(it => {
+        if (!dragPool.includes(it)) dragPool.push(it);
+      });
+    }
+
     return {
       rawText,
       content: questionContent,
@@ -320,39 +366,85 @@ function buildDragDropFromTable(rawText, questionContent, tableData, explicitDra
       dragMode: "categorize",
       columns,
       extractedBlanks,
-      dragItems: shuffleArray([...allItems]),
+      dragItems: shuffleArray([...new Set(dragPool)]),
       correctAnswers,
       renderedTemplate: questionContent
     };
   }
 
-  // ── MATCH TABLE (Câu 12 type): left=blank text, right=red answer ──────────
+  // 2. MATCH TABLE (Câu 12 type: Statement table with blanks and drop targets)
+  let contentRows = rows;
+  if (rows.length >= 2 && rows[0].length >= 2) {
+    const c0 = rows[0][0].text.toLowerCase().trim();
+    const c1 = rows[0][1].text.toLowerCase().trim();
+    if ((c0.includes("phát biểu") || c0.includes("nội dung") || c0.includes("stt")) &&
+        (c1.includes("đáp án") || c1.includes("kết quả") || c1.includes("vị trí") || c1.includes("lựa chọn"))) {
+      contentRows = rows.slice(1);
+    }
+  }
+
   const matchPairs = [];
   const extractedBlanks = [];
   const correctAnswers = {};
+  const collectedAnswers = [];
 
-  for (const row of rows) {
-    if (row.length < 2) continue;
+  contentRows.forEach((row, rIdx) => {
+    if (row.length === 0) return;
     const leftCell = row[0];
-    const rightCell = row[row.length - 1];
+    const rightCell = row.length > 1 ? row[row.length - 1] : null;
 
     const leftText = leftCell.text.trim();
-    const rightAnswer = rightCell.redTexts.join("").trim() || rightCell.text.trim();
+    if (!leftText) return;
 
-    if (!leftText || !rightAnswer) continue;
+    // Detect answer from right cell (red or text), left cell red text, or explicit items
+    let answer = "";
+    if (rightCell) {
+      if (rightCell.redTexts && rightCell.redTexts.length > 0) {
+        answer = rightCell.redTexts.join(" ").trim();
+      } else if (rightCell.text.trim()) {
+        answer = rightCell.text.trim();
+      }
+    }
+
+    if (!answer && leftCell.redTexts && leftCell.redTexts.length > 0) {
+      answer = leftCell.redTexts.join(" ").trim();
+    }
+
+    // Fallback: match from explicitDragItems by index if available
+    if (!answer && explicitDragItems && explicitDragItems[rIdx]) {
+      answer = explicitDragItems[rIdx];
+    }
 
     const blankId = `BLANK_${matchPairs.length}`;
-    const leftWithBlank = leftText.replace(/_{2,}|___+|\[.*?\]/g, `[${blankId}]`);
+    const leftWithBlank = /_{2,}|___+|\[.*?\]/.test(leftText)
+      ? leftText.replace(/_{2,}|___+|\[.*?\]/g, `[${blankId}]`)
+      : `${leftText} [${blankId}]`;
 
-    matchPairs.push({ leftText, leftWithBlank, rightAnswer, blankId });
-    extractedBlanks.push({ blankId, answer: rightAnswer });
-    correctAnswers[blankId] = rightAnswer;
+    matchPairs.push({
+      leftText,
+      leftWithBlank,
+      rightAnswer: answer,
+      blankId
+    });
+
+    extractedBlanks.push({ blankId, answer });
+    if (answer) {
+      correctAnswers[blankId] = answer;
+      collectedAnswers.push(answer);
+    }
+  });
+
+  // Build complete pool of drag items
+  let allDragItems = [...explicitDragItems];
+  collectedAnswers.forEach(ans => {
+    if (ans && !allDragItems.includes(ans)) {
+      allDragItems.push(ans);
+    }
+  });
+
+  if (allDragItems.length === 0) {
+    allDragItems = matchPairs.map((p, idx) => p.rightAnswer || `Đáp án ${idx + 1}`);
   }
-
-  const dragItemsFromAnswers = matchPairs.map(p => p.rightAnswer);
-  const dragItems = explicitDragItems.length > 0
-    ? explicitDragItems
-    : shuffleArray([...new Set(dragItemsFromAnswers)]);
 
   return {
     rawText,
@@ -361,7 +453,7 @@ function buildDragDropFromTable(rawText, questionContent, tableData, explicitDra
     dragMode: "match",
     matchPairs,
     extractedBlanks,
-    dragItems,
+    dragItems: shuffleArray([...new Set(allDragItems)]),
     correctAnswers,
     renderedTemplate: questionContent
   };

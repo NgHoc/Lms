@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Flag, CheckCircle, ArrowLeft, ArrowRight, Award, AlertTriangle, Play, RefreshCw, Bookmark, HelpCircle, Layers } from 'lucide-react';
+import {
+  Clock, Flag, CheckCircle, ArrowLeft, ArrowRight, Award, AlertTriangle,
+  Play, RefreshCw, Bookmark, HelpCircle, Layers, Check, Sparkles, BookOpen, ChevronRight
+} from 'lucide-react';
 import QuizResult from './QuizResult';
 
 function shuffleArray(arr) {
@@ -29,6 +32,8 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
   const [testResult, setTestResult] = useState(null);
   const [activeSessionMeta, setActiveSessionMeta] = useState(null);
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
+  const [showMobileMatrixModal, setShowMobileMatrixModal] = useState(false);
+  const [activeSlotId, setActiveSlotId] = useState(null);
 
   // Lessons for selected course
   const courseLessons = lessons.filter(l => l.courseId === selectedCourseId);
@@ -128,71 +133,80 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
     setShowSubmitConfirmModal(false);
     if (onClearCustomSession) onClearCustomSession();
 
-    const durationMins = selectedMode === "TEST_15" ? 15 : selectedMode === "TEST_30" ? 30 : 60;
-    setTimeLeft(durationMins * 60);
+    let durationSeconds = 15 * 60;
+    if (selectedMode === "TEST_30") durationSeconds = 30 * 60;
+    if (selectedMode === "TEST_60") durationSeconds = 60 * 60;
+
+    setTimeLeft(durationSeconds);
     setIsTestActive(true);
   };
 
-  // Timer Countdown Effect
+  // Timer Tick
   useEffect(() => {
     if (!isTestActive || isSubmitted) return;
-    if (timeLeft <= 0) {
-      handleFinalSubmit();
-      return;
-    }
-
     const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleFinalSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
-
     return () => clearInterval(timer);
-  }, [isTestActive, timeLeft, isSubmitted]);
+  }, [isTestActive, isSubmitted]);
 
-  // Keypress Enter listener to move to next question
+  // Keyboard navigation: Enter for next, Arrow Left / Right
   useEffect(() => {
-    if (!isTestActive || isSubmitted || showSubmitConfirmModal) return;
-
+    if (!isTestActive || isSubmitted) return;
     const handleKeyDown = (e) => {
-      const tag = (e.target.tagName || '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-
-      if (e.key === 'Enter') {
-        e.preventDefault();
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === 'Enter') {
         setCurrentIndex(prev => Math.min(prev + 1, activeQuestions.length - 1));
+      } else if (e.key === 'ArrowLeft') {
+        setCurrentIndex(prev => Math.max(prev - 1, 0));
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isTestActive, isSubmitted, showSubmitConfirmModal, activeQuestions.length]);
+  }, [isTestActive, isSubmitted, activeQuestions.length]);
 
+  // Format Time Remaining (mm:ss)
   const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSelectChoice = (qInstId, optId, isMulti) => {
+  // Toggle Flag question
+  const toggleFlag = (instanceId) => {
+    setFlaggedQuestions(prev => ({ ...prev, [instanceId]: !prev[instanceId] }));
+  };
+
+  // Handler for Single / Multi Choice
+  const handleSelectChoice = (instanceId, optId, isMulti) => {
     setUserAnswers(prev => {
-      const current = prev[qInstId] || [];
+      const current = prev[instanceId] || [];
       if (isMulti) {
         if (current.includes(optId)) {
-          return { ...prev, [qInstId]: current.filter(id => id !== optId) };
+          return { ...prev, [instanceId]: current.filter(id => id !== optId) };
         } else {
-          return { ...prev, [qInstId]: [...current, optId] };
+          return { ...prev, [instanceId]: [...current, optId] };
         }
       } else {
-        return { ...prev, [qInstId]: [optId] };
+        return { ...prev, [instanceId]: [optId] };
       }
     });
   };
 
-  const handleSelectTrueFalse = (qInstId, optKey, value) => {
+  // Handler for True / False
+  const handleSelectTrueFalse = (instanceId, optKey, value) => {
     setUserAnswers(prev => {
-      const current = prev[qInstId] || {};
+      const current = prev[instanceId] || {};
       return {
         ...prev,
-        [qInstId]: {
+        [instanceId]: {
           ...current,
           [optKey]: value
         }
@@ -200,12 +214,18 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
     });
   };
 
-  const handleDropKeyword = (qInstId, blankId, keyword) => {
+  // Handler for Drag & Drop / Keyword Slot
+  const handleDropKeyword = (instanceId, blankId, keyword) => {
     setUserAnswers(prev => {
-      const current = prev[qInstId] || {};
+      const current = prev[instanceId] || {};
+      if (keyword === null) {
+        const copy = { ...current };
+        delete copy[blankId];
+        return { ...prev, [instanceId]: copy };
+      }
       return {
         ...prev,
-        [qInstId]: {
+        [instanceId]: {
           ...current,
           [blankId]: keyword
         }
@@ -213,87 +233,129 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
     });
   };
 
-  const toggleFlag = (qInstId) => {
-    setFlaggedQuestions(prev => ({ ...prev, [qInstId]: !prev[qInstId] }));
-  };
-
-  // Final Submit Math
-  const handleFinalSubmit = () => {
-    let totalPossibleScore = activeQuestions.length;
+  // Grading Algorithm
+  const calculateResult = () => {
     let earnedPoints = 0;
+    const totalQuestions = activeQuestions.length;
 
-    const detailedReview = activeQuestions.map(q => {
-      const ans = userAnswers[q.instanceId];
+    const reviewData = activeQuestions.map(q => {
+      const uAns = userAnswers[q.instanceId];
       let isCorrect = false;
+      let questionScore = 0;
 
-      if (q.type === 'SINGLE_CHOICE' || q.type === 'MULTI_CHOICE') {
-        const correctOptIds = (q.options || []).filter(o => o.isCorrect).map(o => o.id);
-        const userOpts = ans || [];
-        if (correctOptIds.length === userOpts.length && correctOptIds.every(id => userOpts.includes(id))) {
+      if (q.type === 'SINGLE_CHOICE') {
+        const correctOpt = (q.options || []).find(o => o.isCorrect);
+        if (correctOpt && uAns && uAns.length === 1 && uAns[0] === correctOpt.id) {
           isCorrect = true;
-          earnedPoints += 1;
+          questionScore = 1.0;
+        }
+      } else if (q.type === 'MULTI_CHOICE') {
+        const correctIds = (q.options || []).filter(o => o.isCorrect).map(o => o.id);
+        const userSelected = uAns || [];
+        const isExact = correctIds.length === userSelected.length &&
+          correctIds.every(id => userSelected.includes(id));
+        if (isExact) {
+          isCorrect = true;
+          questionScore = 1.0;
         }
       } else if (q.type === 'TRUE_FALSE') {
-        const userTF = ans || {};
-        let allMatched = true;
-        (q.options || []).forEach(opt => {
-          const expected = opt.isCorrect;
-          const userVal = userTF[opt.key];
-          if (userVal !== expected) allMatched = false;
+        const opts = q.options || [];
+        const userObj = uAns || {};
+        let correctSubCount = 0;
+        opts.forEach(opt => {
+          if (userObj[opt.key] === opt.isCorrect) {
+            correctSubCount++;
+          }
         });
-        if (allMatched && Object.keys(userTF).length === (q.options || []).length) {
-          isCorrect = true;
-          earnedPoints += 1;
+        if (opts.length > 0) {
+          questionScore = correctSubCount / opts.length;
+          isCorrect = correctSubCount === opts.length;
         }
       } else if (q.type === 'DRAG_DROP') {
-        const userBlanks = ans || {};
-        const correctMap = q.correctAnswers || {};
-        const totalBlanks = Object.keys(correctMap).length;
-        if (totalBlanks === 0) {
-          isCorrect = true;
-          earnedPoints += 1;
-        } else {
-          let matchedCount = 0;
-          Object.keys(correctMap).forEach(blankId => {
-            const userVal = (userBlanks[blankId] || '').toString().trim().toLowerCase();
-            const correctVal = (correctMap[blankId] || '').toString().trim().toLowerCase();
-            if (userVal && userVal === correctVal) matchedCount++;
+        const userObj = uAns || {};
+        if (q.dragMode === 'categorize' && q.columns && q.columns.length > 0) {
+          const totalItems = q.columns.reduce((sum, col) => sum + (col.items?.length || 0), 0);
+          let correctPlacedCount = 0;
+          let misplacedCount = 0;
+
+          q.columns.forEach((col, colIdx) => {
+            const correctSet = (col.items || []).map(it => it.trim().toLowerCase());
+            const userInThisCol = Object.entries(userObj)
+              .filter(([k, v]) => k.startsWith(`COL_${colIdx}_`) && v)
+              .map(([, v]) => v.trim().toLowerCase());
+
+            userInThisCol.forEach(uItem => {
+              if (correctSet.includes(uItem)) {
+                correctPlacedCount++;
+              } else {
+                misplacedCount++;
+              }
+            });
           });
-          if (matchedCount === totalBlanks && Object.keys(userBlanks).length >= totalBlanks) {
-            isCorrect = true;
-            earnedPoints += 1;
+
+          if (totalItems > 0) {
+            questionScore = Math.max(0, (correctPlacedCount - misplacedCount * 0.5) / totalItems);
+            isCorrect = correctPlacedCount === totalItems && misplacedCount === 0;
+          }
+        } else {
+          const correctObj = q.correctAnswers || {};
+          const totalBlanks = Object.keys(correctObj).length;
+          let matchedCount = 0;
+
+          Object.keys(correctObj).forEach(bId => {
+            if (userObj[bId] && userObj[bId].trim().toLowerCase() === correctObj[bId].trim().toLowerCase()) {
+              matchedCount++;
+            }
+          });
+
+          if (totalBlanks > 0) {
+            questionScore = matchedCount / totalBlanks;
+            isCorrect = matchedCount === totalBlanks;
           }
         }
       }
 
+      earnedPoints += questionScore;
+
       return {
         ...q,
-        userAnswer: ans,
-        isUserCorrect: isCorrect
+        userAnswer: uAns,
+        isUserCorrect: isCorrect,
+        questionScore
       };
     });
 
-    const scale10Score = totalPossibleScore > 0 ? (earnedPoints / totalPossibleScore) * 10 : 0;
-    let totalDuration = activeSessionMeta
-      ? (activeSessionMeta.totalCount * 60)
-      : (selectedMode === "TEST_15" ? 15 * 60 : selectedMode === "TEST_30" ? 30 * 60 : 60 * 60);
+    const scale10Score = ((earnedPoints / Math.max(1, totalQuestions)) * 10).toFixed(1);
 
-    setTestResult({
-      totalQuestions: activeQuestions.length,
-      earnedPoints,
-      scale10Score: scale10Score.toFixed(1),
-      timeSpentSeconds: totalDuration - timeLeft,
-      reviewData: detailedReview,
+    let totalDuration = 15 * 60;
+    if (activeSessionMeta) totalDuration = activeSessionMeta.totalCount * 60;
+    else if (selectedMode === "TEST_30") totalDuration = 30 * 60;
+    else if (selectedMode === "TEST_60") totalDuration = 60 * 60;
+
+    const timeSpentSeconds = Math.max(0, totalDuration - timeLeft);
+
+    return {
+      totalQuestions,
+      earnedPoints: earnedPoints.toFixed(1),
+      scale10Score,
+      timeSpentSeconds,
+      reviewData,
       sessionMeta: activeSessionMeta
-    });
+    };
+  };
 
+  const handleFinalSubmit = () => {
+    const res = calculateResult();
+    setTestResult(res);
     setIsSubmitted(true);
     setIsTestActive(false);
   };
 
   const currentQ = activeQuestions[currentIndex];
-  const isQuestionAnswered = (qInstId) => {
-    const ans = userAnswers[qInstId];
+
+  // Helper check if question is answered
+  const isQuestionAnswered = (instanceId) => {
+    const ans = userAnswers[instanceId];
     if (!ans) return false;
     if (Array.isArray(ans)) return ans.length > 0;
     if (typeof ans === 'object') return Object.keys(ans).length > 0;
@@ -301,13 +363,14 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
   };
 
   const answeredCount = activeQuestions.filter(q => isQuestionAnswered(q.instanceId)).length;
+  const progressPercent = activeQuestions.length > 0 ? (answeredCount / activeQuestions.length) * 100 : 0;
 
   if (isSubmitted && testResult) {
     return (
       <QuizResult
         result={testResult}
         course={testResult.sessionMeta?.course || courses.find(c => c.id === selectedCourseId)}
-        mode={testResult.sessionMeta ? `Bộ đề: ${testResult.sessionMeta.lessons?.map(l => 'Bài ' + l.lessonNumber).join(', ')}` : selectedMode}
+        mode={testResult.sessionMeta ? `Bộ đề tùy biến: ${testResult.sessionMeta.lessons?.map(l => 'Bài ' + l.lessonNumber).join(', ')}` : selectedMode}
         onRetake={() => {
           if (onClearCustomSession) onClearCustomSession();
           setActiveSessionMeta(null);
@@ -320,111 +383,267 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
   }
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '1.5rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '1400px', margin: '1.5rem auto', padding: '0 1.25rem' }}>
       {!isTestActive ? (
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          <div className="lms-card" style={{ padding: '2.5rem' }}>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem', textAlign: 'center' }}>
-              Hệ Thống Ôn Luyện & Chế Độ Sinh Đề Ngẫu Nhiên
-            </h2>
-            <p style={{ color: '#64748b', textAlign: 'center', marginBottom: '2rem' }}>
-              Lựa chọn Học phần và Chế độ thi để hệ thống tự động sinh cấu trúc bài test từ ngân hàng câu hỏi.
-            </p>
+        <div style={{ maxWidth: '960px', margin: '0 auto' }} className="animate-fade-in">
+          
+          {/* Main Card Container */}
+          <div className="lms-card" style={{ padding: '2.5rem', boxShadow: 'var(--shadow-xl)' }}>
+            
+            {/* Hero Title */}
+            <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '4px 14px',
+                borderRadius: '9999px',
+                background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+                color: '#4f46e5',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                border: '1px solid #c7d2fe',
+                marginBottom: '1rem'
+              }}>
+                <Sparkles size={14} /> NGÂN HÀNG ĐỀ THI THÔNG MINH
+              </div>
+              <h2 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.025em', marginBottom: '0.5rem' }}>
+                Hệ Thống Ôn Luyện & Thi Thử Trực Tuyến
+              </h2>
+              <p style={{ color: '#64748b', fontSize: '0.975rem', maxWidth: '640px', margin: '0 auto' }}>
+                Lựa chọn Học phần và Chế độ thi phù hợp để hệ thống tự động trích xuất và xáo trộn câu hỏi từ ngân hàng đề thi.
+              </p>
+            </div>
 
             {/* Step 1: Select Course */}
-            <div style={{ marginBottom: '1.75rem' }}>
-              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.5rem', color: '#0f172a' }}>
-                1. Chọn Học Phần ({courses.length} Học Phần Hiện Có)
+            <div style={{ marginBottom: '2.25rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', marginBottom: '0.875rem' }}>
+                <span style={{
+                  background: 'var(--primary-gradient)',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '26px',
+                  height: '26px',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)'
+                }}>1</span>
+                Bước 1: Chọn Học Phần ({courses.length} Học Phần Hiện Có)
               </label>
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                {courses.map(course => (
-                  <div
-                    key={course.id}
-                    onClick={() => {
-                      setSelectedCourseId(course.id);
-                    }}
-                    style={{
-                      padding: '1.25rem',
-                      borderRadius: '12px',
-                      border: selectedCourseId === course.id ? '2px solid #1e40af' : '1px solid #e2e8f0',
-                      backgroundColor: selectedCourseId === course.id ? '#eff6ff' : '#ffffff',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, color: '#1e40af', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                      {course.code}
+                {courses.map(course => {
+                  const isSelected = selectedCourseId === course.id;
+                  const cLessonCount = lessons.filter(l => l.courseId === course.id).length;
+                  const cQuestionCount = course.questionsCount || questions.filter(q => lessons.filter(l => l.courseId === course.id).map(l => l.id).includes(q.lessonId)).length;
+
+                  return (
+                    <div
+                      key={course.id}
+                      onClick={() => setSelectedCourseId(course.id)}
+                      className={`lms-card-interactive ${isSelected ? 'selected' : ''}`}
+                      style={{
+                        padding: '1.25rem 1.35rem',
+                        borderWidth: isSelected ? '2px' : '1.5px'
+                      }}
+                    >
+                      {isSelected && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '12px',
+                          right: '12px',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: 'var(--primary-gradient)',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 6px rgba(79, 70, 229, 0.4)'
+                        }}>
+                          <Check size={14} strokeWidth={3} />
+                        </div>
+                      )}
+
+                      <div style={{
+                        display: 'inline-block',
+                        fontWeight: 800,
+                        color: '#4f46e5',
+                        fontSize: '0.78rem',
+                        backgroundColor: '#eef2ff',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        marginBottom: '0.5rem',
+                        border: '1px solid #c7d2fe'
+                      }}>
+                        {course.code}
+                      </div>
+
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.35, marginBottom: '0.5rem' }}>
+                        {course.title}
+                      </div>
+
+                      <div style={{ fontSize: '0.82rem', color: '#64748b', display: 'flex', gap: '0.75rem', fontWeight: 600 }}>
+                        <span>📖 {cLessonCount} bài học</span>
+                        <span>•</span>
+                        <span>❓ {cQuestionCount} câu hỏi</span>
+                      </div>
                     </div>
-                    <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>
-                      {course.title}
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                      {course.questionsCount || questions.filter(q => lessons.filter(l => l.courseId === course.id).map(l => l.id).includes(q.lessonId)).length} câu hỏi • {lessons.filter(l => l.courseId === course.id).length} bài học
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             {/* Step 2: Select 3 Test Modes */}
-            <div style={{ marginBottom: '1.75rem' }}>
-              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.5rem', color: '#0f172a' }}>
-                2. Chọn Chế Độ Bài Test
+            <div style={{ marginBottom: '2.25rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', marginBottom: '0.875rem' }}>
+                <span style={{
+                  background: 'var(--primary-gradient)',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '26px',
+                  height: '26px',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)'
+                }}>2</span>
+                Bước 2: Chọn Chế Độ Thi Thử
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-                <div onClick={() => setSelectedMode("TEST_15")} style={{ padding: '1.25rem', borderRadius: '12px', border: selectedMode === "TEST_15" ? '2px solid #1e40af' : '1px solid #e2e8f0', backgroundColor: selectedMode === "TEST_15" ? '#eff6ff' : '#ffffff', cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e40af', fontWeight: 700, marginBottom: '0.5rem' }}>
-                    <Clock size={18} /> Test 15 Phút
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                
+                {/* Mode 15 */}
+                <div
+                  onClick={() => setSelectedMode("TEST_15")}
+                  className={`lms-card-interactive ${selectedMode === "TEST_15" ? 'selected' : ''}`}
+                  style={{ padding: '1.35rem', borderWidth: selectedMode === "TEST_15" ? '2px' : '1.5px' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '10px',
+                      background: selectedMode === "TEST_15" ? 'var(--primary-gradient)' : '#eef2ff',
+                      color: selectedMode === "TEST_15" ? '#fff' : '#4f46e5',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <Clock size={18} />
+                    </div>
+                    <span className="badge badge-primary">15 Phút</span>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 600 }}>15 câu hỏi ngẫu nhiên thuộc 1 Bài học chỉ định.</p>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                    Test 15 Phút Nhanh
+                  </h4>
+                  <p style={{ fontSize: '0.825rem', color: '#64748b', lineHeight: 1.4 }}>
+                    15 câu hỏi ngẫu nhiên thuộc 1 Bài học cụ thể bạn chỉ định.
+                  </p>
                 </div>
 
-                <div onClick={() => setSelectedMode("TEST_30")} style={{ padding: '1.25rem', borderRadius: '12px', border: selectedMode === "TEST_30" ? '2px solid #1e40af' : '1px solid #e2e8f0', backgroundColor: selectedMode === "TEST_30" ? '#eff6ff' : '#ffffff', cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e40af', fontWeight: 700, marginBottom: '0.5rem' }}>
-                    <Clock size={18} /> Test 30 Phút (3 Bài Học)
+                {/* Mode 30 */}
+                <div
+                  onClick={() => setSelectedMode("TEST_30")}
+                  className={`lms-card-interactive ${selectedMode === "TEST_30" ? 'selected' : ''}`}
+                  style={{ padding: '1.35rem', borderWidth: selectedMode === "TEST_30" ? '2px' : '1.5px' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '10px',
+                      background: selectedMode === "TEST_30" ? 'var(--primary-gradient)' : '#f3e8ff',
+                      color: selectedMode === "TEST_30" ? '#fff' : '#7c3aed',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <Layers size={18} />
+                    </div>
+                    <span className="badge badge-warning">30 Phút</span>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 600 }}>30 câu hỏi ngẫu nhiên từ tối đa 3 Bài học bạn chọn.</p>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                    Test 30 Phút (Tối đa 3 Bài)
+                  </h4>
+                  <p style={{ fontSize: '0.825rem', color: '#64748b', lineHeight: 1.4 }}>
+                    30 câu hỏi ngẫu nhiên tổng hợp từ tối đa 3 Bài học bạn tự chọn.
+                  </p>
                 </div>
 
-                <div onClick={() => setSelectedMode("TEST_60")} style={{ padding: '1.25rem', borderRadius: '12px', border: selectedMode === "TEST_60" ? '2px solid #1e40af' : '1px solid #e2e8f0', backgroundColor: selectedMode === "TEST_60" ? '#eff6ff' : '#ffffff', cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e40af', fontWeight: 700, marginBottom: '0.5rem' }}>
-                    <Clock size={18} /> Test 60 Phút (Cuối Kỳ)
+                {/* Mode 60 */}
+                <div
+                  onClick={() => setSelectedMode("TEST_60")}
+                  className={`lms-card-interactive ${selectedMode === "TEST_60" ? 'selected' : ''}`}
+                  style={{ padding: '1.35rem', borderWidth: selectedMode === "TEST_60" ? '2px' : '1.5px' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '10px',
+                      background: selectedMode === "TEST_60" ? 'var(--primary-gradient)' : '#ecfdf5',
+                      color: selectedMode === "TEST_60" ? '#fff' : '#059669',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <Award size={18} />
+                    </div>
+                    <span className="badge badge-success">60 Phút</span>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: '#334155', fontWeight: 600 }}>50 câu hỏi ngẫu nhiên toàn bộ kho đề Học phần.</p>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                    Test Cuối Kỳ Chuẩn
+                  </h4>
+                  <p style={{ fontSize: '0.825rem', color: '#64748b', lineHeight: 1.4 }}>
+                    50 câu hỏi phủ khắp toàn bộ kho đề thi của Học phần.
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Config for Test 15 mins */}
             {selectedMode === "TEST_15" && (
-              <div style={{ marginBottom: '2rem', padding: '1.25rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.875rem', marginBottom: '0.5rem', color: '#0f172a' }}>
-                  Chỉ định Bài học cho Bài Test 15 phút:
+              <div style={{ marginBottom: '2.25rem', padding: '1.35rem', backgroundColor: '#f8fafc', borderRadius: '14px', border: '1.5px solid #e2e8f0' }} className="animate-fade-in">
+                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.5rem', color: '#0f172a' }}>
+                  Chỉ định Bài học cho bài test 15 phút:
                 </label>
-                <select value={selectedLessonId} onChange={(e) => setSelectedLessonId(e.target.value)} style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.875rem', fontWeight: 600, outline: 'none' }}>
+                <select
+                  value={selectedLessonId}
+                  onChange={(e) => setSelectedLessonId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    outline: 'none',
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a'
+                  }}
+                >
                   {courseLessons.map(l => (
-                    <option key={l.id} value={l.id}>{l.title}</option>
+                    <option key={l.id} value={l.id}>
+                      Bài {l.lessonNumber}: {l.title}
+                    </option>
                   ))}
                 </select>
               </div>
             )}
 
-            {/* Config for Test 30 mins (Select up to 3 Lessons) */}
+            {/* Config for Test 30 mins */}
             {selectedMode === "TEST_30" && (
-              <div style={{ marginBottom: '2rem', padding: '1.25rem', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <label style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a' }}>
-                    Chỉ định tối đa 3 Bài học cho Bài Test 30 Phút:
+              <div style={{ marginBottom: '2.25rem', padding: '1.35rem', backgroundColor: '#f8fafc', borderRadius: '14px', border: '1.5px solid #e2e8f0' }} className="animate-fade-in">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
+                  <label style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
+                    Chỉ định tối đa 3 Bài học cho bài test 30 phút:
                   </label>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: selected30LessonIds.length === 3 ? '#1e40af' : '#64748b' }}>
+                  <span className={`badge ${selected30LessonIds.length === 3 ? 'badge-primary' : 'badge-warning'}`}>
                     {selected30LessonIds.length} / 3 bài đã chọn
                   </span>
                 </div>
 
                 {courseLessons.length === 0 ? (
-                  <div style={{ fontSize: '0.85rem', color: '#94a3b8', padding: '0.5rem 0' }}>Học phần này chưa có bài học nào.</div>
+                  <div style={{ fontSize: '0.85rem', color: '#94a3b8', padding: '1rem 0', textAlign: 'center' }}>
+                    Học phần này chưa có bài học nào.
+                  </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
                     {courseLessons.map(l => {
                       const isSelected = selected30LessonIds.includes(l.id);
                       const isDisabled = !isSelected && selected30LessonIds.length >= 3;
@@ -444,32 +663,32 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                             });
                           }}
                           style={{
-                            padding: '0.75rem 1rem',
-                            borderRadius: '10px',
-                            border: isSelected ? '2px solid #1e40af' : '1px solid #cbd5e1',
-                            backgroundColor: isSelected ? '#eff6ff' : isDisabled ? '#f1f5f9' : '#ffffff',
+                            padding: '0.875rem 1.125rem',
+                            borderRadius: '12px',
+                            border: isSelected ? '2px solid #4f46e5' : '1.5px solid #cbd5e1',
+                            backgroundColor: isSelected ? '#eef2ff' : isDisabled ? '#f1f5f9' : '#ffffff',
                             cursor: isDisabled ? 'not-allowed' : 'pointer',
-                            opacity: isDisabled ? 0.5 : 1,
-                            transition: 'all 0.15s ease',
+                            opacity: isDisabled ? 0.45 : 1,
+                            transition: 'all 0.2s ease',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.625rem'
+                            gap: '0.75rem'
                           }}
                         >
                           <div style={{
-                            width: '20px', height: '20px', borderRadius: '5px',
+                            width: '22px', height: '22px', borderRadius: '6px',
                             border: isSelected ? 'none' : '2px solid #94a3b8',
-                            backgroundColor: isSelected ? '#1e40af' : 'transparent',
+                            background: isSelected ? 'var(--primary-gradient)' : 'transparent',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: '#fff', fontSize: '0.75rem', fontWeight: 800
+                            color: '#fff', fontSize: '0.8rem', fontWeight: 800
                           }}>
-                            {isSelected && '✓'}
+                            {isSelected && <Check size={14} strokeWidth={3} />}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               Bài {l.lessonNumber}: {l.title}
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{lessonQsCount} câu hỏi</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{lessonQsCount} câu hỏi</div>
                           </div>
                         </div>
                       );
@@ -479,60 +698,138 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
               </div>
             )}
 
-            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-              <button onClick={handleStartTest} className="btn-primary" style={{ fontSize: '1rem', padding: '0.875rem 2.5rem', borderRadius: '9999px' }}>
-                <Play size={20} /> Bắt Đầu Làm Bài Test Ngay
+            {/* Start Button */}
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <button
+                onClick={handleStartTest}
+                className="btn-primary"
+                style={{ fontSize: '1.05rem', padding: '1rem 3.5rem', borderRadius: '9999px' }}
+              >
+                <Play size={22} /> Bắt Đầu Làm Bài Test Ngay
               </button>
             </div>
           </div>
         </div>
       ) : (
         /* Examination Layout */
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1.5rem', alignItems: 'start' }}>
-          <div className="lms-card" style={{ padding: '2rem' }}>
+        <div className="quiz-layout-grid animate-fade-in">
+          
+          {/* Main Question Box */}
+          <div className="lms-card quiz-main-card" style={{ boxShadow: 'var(--shadow-lg)' }}>
 
-            {/* Custom session banner */}
+            {/* Custom session banner if exists */}
             {activeSessionMeta && (
-              <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', backgroundColor: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Layers size={18} color="#047857" style={{ flexShrink: 0 }} />
+              <div style={{
+                marginBottom: '1.25rem',
+                padding: '0.875rem 1.25rem',
+                backgroundColor: '#ecfdf5',
+                border: '1.5px solid #a7f3d0',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
+                <Layers size={18} color="#059669" style={{ flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#047857' }}>Bộ Đề Ôn Tập: </span>
-                  <span style={{ fontSize: '0.8rem', color: '#065f46' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#047857' }}>Bộ Đề Tùy Biến: </span>
+                  <span style={{ fontSize: '0.82rem', color: '#065f46', fontWeight: 600 }}>
                     {activeSessionMeta.lessons?.map(l => `Bài ${l.lessonNumber}: ${l.title}`).join(' • ')}
                   </span>
                 </div>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, backgroundColor: '#047857', color: '#fff', padding: '2px 10px', borderRadius: '12px' }}>
+                <span className="badge badge-success" style={{ flexShrink: 0 }}>
                   {activeSessionMeta.totalCount} câu
                 </span>
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
-              <div>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e40af', backgroundColor: '#eff6ff', padding: '2px 8px', borderRadius: '4px' }}>
-                  Câu hỏi {currentIndex + 1} / {activeQuestions.length}
-                </span>
-                <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: '#64748b' }}>
-                  {currentQ.type === 'SINGLE_CHOICE' ? 'Dạng 1: Chọn 1 đáp án' :
-                    currentQ.type === 'MULTI_CHOICE' ? 'Dạng 1: Chọn nhiều đáp án' :
-                      currentQ.type === 'TRUE_FALSE' ? 'Dạng 2: Chọn Đúng / Sai' : 'Dạng 3: Điền khuyết / Kéo thả'}
-                </span>
+            {/* Question Progress Header Bar */}
+            <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem' }}>
+              
+              {/* Dynamic Progress Bar */}
+              <div style={{ height: '6px', backgroundColor: '#f1f5f9', borderRadius: '9999px', marginBottom: '1rem', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%',
+                  borderRadius: '9999px',
+                  background: 'var(--primary-gradient)',
+                  width: `${progressPercent}%`,
+                  transition: 'width 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                }} />
               </div>
 
-              <button onClick={() => toggleFlag(currentQ.instanceId)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: flaggedQuestions[currentQ.instanceId] ? '#fffbeb' : '#ffffff', color: flaggedQuestions[currentQ.instanceId] ? '#b45309' : '#64748b', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
-                <Bookmark size={16} fill={flaggedQuestions[currentQ.instanceId] ? '#b45309' : 'none'} />
-                {flaggedQuestions[currentQ.instanceId] ? 'Đã đánh dấu' : 'Đánh dấu câu này'}
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+                  {/* Tap to open Question Map Modal on Mobile */}
+                  <button
+                    onClick={() => setShowMobileMatrixModal(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      color: '#ffffff',
+                      background: 'var(--primary-gradient)',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)',
+                      cursor: 'pointer'
+                    }}
+                    title="Bấm để mở Ma trận toàn bộ câu hỏi"
+                  >
+                    <span>Câu {currentIndex + 1} / {activeQuestions.length}</span>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>▾</span>
+                  </button>
+
+                  <span style={{ fontSize: '0.825rem', color: '#64748b', fontWeight: 600 }}>
+                    {currentQ.type === 'SINGLE_CHOICE' ? 'Dạng 1: 1 đáp án' :
+                      currentQ.type === 'MULTI_CHOICE' ? 'Dạng 1: Nhiều đáp án' :
+                        currentQ.type === 'TRUE_FALSE' ? 'Dạng 2: Đúng / Sai' : 'Dạng 3: Kéo thả'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => toggleFlag(currentQ.instanceId)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '6px 12px',
+                      borderRadius: '10px',
+                      border: flaggedQuestions[currentQ.instanceId] ? '1.5px solid #fde68a' : '1.5px solid #e2e8f0',
+                      backgroundColor: flaggedQuestions[currentQ.instanceId] ? '#fffbeb' : '#ffffff',
+                      color: flaggedQuestions[currentQ.instanceId] ? '#b45309' : '#64748b',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: flaggedQuestions[currentQ.instanceId] ? '0 2px 8px rgba(245, 158, 11, 0.2)' : 'none'
+                    }}
+                  >
+                    <Bookmark size={15} fill={flaggedQuestions[currentQ.instanceId] ? '#b45309' : 'none'} />
+                    <span>{flaggedQuestions[currentQ.instanceId] ? 'Đã đánh dấu' : 'Đánh dấu'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Question Title */}
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', marginBottom: '1.5rem', lineHeight: 1.6, wordBreak: 'break-word' }}>
+            {/* Question Title Statement */}
+            <div style={{
+              fontSize: '1.15rem',
+              fontWeight: 800,
+              color: '#0f172a',
+              marginBottom: '1.75rem',
+              lineHeight: 1.6,
+              wordBreak: 'break-word',
+              letterSpacing: '-0.01em'
+            }}>
               {currentQ.content}
             </div>
 
-            {/* DẠNG 1: Single/Multi Choice */}
+            {/* DẠNG 1: Single / Multi Choice */}
             {(currentQ.type === 'SINGLE_CHOICE' || currentQ.type === 'MULTI_CHOICE') && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
                 {(currentQ.options || []).map(opt => {
                   const currentAns = userAnswers[currentQ.instanceId] || [];
                   const isSelected = currentAns.includes(opt.id);
@@ -542,36 +839,32 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                     <div
                       key={opt.id}
                       onClick={() => handleSelectChoice(currentQ.instanceId, opt.id, isMulti)}
-                      style={{
-                        padding: '1rem 1.25rem',
-                        borderRadius: '12px',
-                        border: isSelected ? '2px solid #1e40af' : '1px solid #e2e8f0',
-                        backgroundColor: isSelected ? '#eff6ff' : '#ffffff',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.875rem',
-                        transition: 'all 0.15s ease'
-                      }}
+                      className={`option-card ${isSelected ? 'selected' : ''}`}
                     >
+                      <div className="option-key-badge">
+                        {opt.key}
+                      </div>
+
+                      <div style={{ flex: 1, fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#334155', fontWeight: isSelected ? 700 : 500, lineHeight: 1.5 }}>
+                        {opt.text}
+                      </div>
+
                       <div style={{
-                        width: '24px',
-                        height: '24px',
+                        width: '22px',
+                        height: '22px',
                         borderRadius: isMulti ? '6px' : '50%',
                         border: isSelected ? 'none' : '2px solid #cbd5e1',
-                        backgroundColor: isSelected ? '#1e40af' : 'transparent',
+                        background: isSelected ? 'var(--primary-gradient)' : 'transparent',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: '#ffffff',
-                        fontSize: '0.85rem',
-                        fontWeight: 700
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        flexShrink: 0,
+                        transition: 'all 0.2s ease'
                       }}>
-                        {isSelected && '✓'}
-                      </div>
-                      <div style={{ flex: 1, fontSize: '0.95rem', color: '#0f172a', fontWeight: 500 }}>
-                        <span style={{ fontWeight: 700, color: '#1e40af', marginRight: '0.5rem' }}>{opt.key}.</span>
-                        {opt.text}
+                        {isSelected && <Check size={14} strokeWidth={3} />}
                       </div>
                     </div>
                   );
@@ -579,19 +872,46 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
               </div>
             )}
 
-            {/* DẠNG 2: True/False */}
+            {/* DẠNG 2: True / False */}
             {currentQ.type === 'TRUE_FALSE' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {(currentQ.options || []).map(opt => {
                   const currentAns = (userAnswers[currentQ.instanceId] || {})[opt.key];
                   return (
-                    <div key={opt.key} style={{ padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                      <div style={{ flex: 1, fontSize: '0.95rem', fontWeight: 600, color: '#0f172a' }}>
-                        <span style={{ color: '#1e40af', marginRight: '0.5rem' }}>{opt.key}.</span>{opt.text}
+                    <div
+                      key={opt.key}
+                      className="tf-option-row"
+                      style={{
+                        padding: '1.15rem 1.35rem',
+                        borderRadius: '14px',
+                        border: '1.5px solid #e2e8f0',
+                        backgroundColor: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '1rem',
+                        boxShadow: 'var(--shadow-xs)'
+                      }}
+                    >
+                      <div style={{ flex: 1, fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', minWidth: '200px', lineHeight: 1.5 }}>
+                        <span style={{ color: '#4f46e5', fontWeight: 800, marginRight: '0.5rem' }}>{opt.key}.</span>
+                        {opt.text}
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', width: '200px' }}>
-                        <button onClick={() => handleSelectTrueFalse(currentQ.instanceId, opt.key, true)} className={`tf-btn ${currentAns === true ? 'selected-true' : ''}`}>Đúng</button>
-                        <button onClick={() => handleSelectTrueFalse(currentQ.instanceId, opt.key, false)} className={`tf-btn ${currentAns === false ? 'selected-false' : ''}`}>Sai</button>
+
+                      <div className="tf-btn-group" style={{ display: 'flex', gap: '0.625rem', minWidth: '200px' }}>
+                        <button
+                          onClick={() => handleSelectTrueFalse(currentQ.instanceId, opt.key, true)}
+                          className={`tf-btn ${currentAns === true ? 'selected-true' : ''}`}
+                        >
+                          ✓ Đúng
+                        </button>
+                        <button
+                          onClick={() => handleSelectTrueFalse(currentQ.instanceId, opt.key, false)}
+                          className={`tf-btn ${currentAns === false ? 'selected-false' : ''}`}
+                        >
+                          ✕ Sai
+                        </button>
                       </div>
                     </div>
                   );
@@ -599,14 +919,22 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
               </div>
             )}
 
-            {/* DẠNG 3: Drag & Drop — 3 chế độ: inline / match / categorize */}
+            {/* DẠNG 3: Drag & Drop */}
             {currentQ.type === 'DRAG_DROP' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
 
-                {/* --- Chế độ INLINE: fill-blank template --- */}
+                {/* --- Mode INLINE: fill-blank template --- */}
                 {(!currentQ.dragMode || currentQ.dragMode === 'inline') && (
                   <>
-                    <div style={{ padding: '1.25rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', lineHeight: 2, fontSize: '1rem' }}>
+                    <div style={{
+                      padding: '1.5rem',
+                      backgroundColor: '#f8fafc',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '16px',
+                      lineHeight: 2.2,
+                      fontSize: '1.05rem',
+                      color: '#0f172a'
+                    }}>
                       {(currentQ.renderedTemplate || currentQ.templateText || currentQ.content).split(/\[BLANK_\d+\]/).map((part, pIdx) => {
                         const blankId = `BLANK_${pIdx}`;
                         const isLast = pIdx === Object.keys(currentQ.correctAnswers || {}).length;
@@ -621,14 +949,14 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                                   if (filledVal) handleDropKeyword(currentQ.instanceId, blankId, null);
                                 }}
                                 style={{ cursor: filledVal ? 'pointer' : 'default' }}
-                                title={filledVal ? "Nhấp để gỡ/sửa đáp án này" : ""}
+                                title={filledVal ? "Nhấp để gỡ đáp án này" : "Nhấp chip bên dưới để điền vào đây"}
                               >
                                 {filledVal ? (
-                                  <span style={{ fontWeight: 700, color: '#1e40af', fontSize: '0.875rem' }}>
-                                    {filledVal} <span style={{ color: '#ef4444', fontSize: '0.75rem', marginLeft: '4px' }}>✕</span>
+                                  <span style={{ fontWeight: 800, color: '#4f46e5', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    {filledVal} <span style={{ color: '#f43f5e', fontSize: '0.75rem' }}>✕</span>
                                   </span>
                                 ) : (
-                                  <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>Kéo thả vào đây</span>
+                                  <span style={{ color: '#94a3b8', fontSize: '0.78rem', fontWeight: 600 }}>[ Ô trống {pIdx + 1} ]</span>
                                 )}
                               </span>
                             )}
@@ -636,79 +964,10 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                         );
                       })}
                     </div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem' }}>Mảnh ghép từ khóa (Nhấp để chèn / Nhấp đáp án ở trên để gỡ):</div>
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      {(currentQ.dragItems || []).map((item, iIdx) => {
-                        const ans = userAnswers[currentQ.instanceId] || {};
-                        const isPlaced = Object.values(ans).includes(item);
-                        return (
-                          <button key={iIdx} onClick={() => {
-                            if (isPlaced) {
-                              // Find and remove
-                              const key = Object.keys(ans).find(k => ans[k] === item);
-                              if (key) handleDropKeyword(currentQ.instanceId, key, null);
-                            } else {
-                              const firstEmpty = Object.keys(currentQ.correctAnswers || {}).find(bId => !ans[bId]);
-                              if (firstEmpty) handleDropKeyword(currentQ.instanceId, firstEmpty, item);
-                            }
-                          }} className="drag-chip" style={{ opacity: isPlaced ? 0.4 : 1, border: isPlaced ? '1px dashed #94a3b8' : '1px solid #1e40af' }}>
-                            {item} {isPlaced ? '✓' : ''}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
 
-                {/* --- Chế độ MATCH: mỗi phát biểu 1 dòng riêng (không dùng |) --- */}
-                {currentQ.dragMode === 'match' && (
-                  <>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {(currentQ.matchPairs || currentQ.extractedBlanks || []).map((pair, pIdx) => {
-                        const blankId = pair.blankId || `BLANK_${pIdx}`;
-                        const leftText = pair.leftText || pair.leftWithBlank || pair.answer;
-                        const filledVal = (userAnswers[currentQ.instanceId] || {})[blankId];
-
-                        return (
-                          <div key={pIdx} style={{ padding: '0.875rem 1.125rem', border: '1.5px solid #e2e8f0', borderRadius: '12px', backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                            <div style={{ flex: 1, fontSize: '0.925rem', color: '#0f172a', fontWeight: 600, lineHeight: 1.5, minWidth: '240px' }}>
-                              <span style={{ color: '#1e40af', fontWeight: 800, marginRight: '0.5rem' }}>{pIdx + 1}.</span>
-                              {leftText.replace(/\[BLANK_\d+\]/g, '_____')}
-                            </div>
-
-                            <div
-                              onClick={() => {
-                                if (filledVal) handleDropKeyword(currentQ.instanceId, blankId, null);
-                              }}
-                              style={{
-                                padding: '8px 14px', borderRadius: '8px',
-                                border: filledVal ? '2px solid #1e40af' : '2px dashed #cbd5e1',
-                                backgroundColor: filledVal ? '#eff6ff' : '#f8fafc',
-                                color: filledVal ? '#1e40af' : '#94a3b8',
-                                fontWeight: filledVal ? 700 : 500, fontSize: '0.85rem',
-                                cursor: filledVal ? 'pointer' : 'default',
-                                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                transition: 'all 0.15s ease'
-                              }}
-                              title={filledVal ? "Nhấp để gỡ đáp án này" : ""}
-                            >
-                              {filledVal ? (
-                                <>
-                                  <span>{filledVal}</span>
-                                  <span style={{ color: '#ef4444', fontWeight: 800, fontSize: '0.8rem' }}>✕ (Gỡ)</span>
-                                </>
-                              ) : (
-                                <span>Thả/Nhấp chip đáp án →</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem' }}>
-                        Mảnh ghép đáp án (Nhấp vào mảnh ghép để điền vào ô trống đầu tiên / Nhấp đáp án đã điền để gỡ):
+                    <div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#64748b', marginBottom: '0.75rem' }}>
+                        Mảnh ghép từ khóa (Nhấp chip để chèn vào ô trống đầu tiên / Nhấp đáp án ở trên để gỡ):
                       </div>
                       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                         {(currentQ.dragItems || []).map((item, iIdx) => {
@@ -722,14 +981,13 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                                   const key = Object.keys(ans).find(k => ans[k] === item);
                                   if (key) handleDropKeyword(currentQ.instanceId, key, null);
                                 } else {
-                                  const firstEmpty = (currentQ.extractedBlanks || []).map(b => b.blankId).find(bId => !ans[bId]);
+                                  const firstEmpty = Object.keys(currentQ.correctAnswers || {}).find(bId => !ans[bId]);
                                   if (firstEmpty) handleDropKeyword(currentQ.instanceId, firstEmpty, item);
                                 }
                               }}
-                              className="drag-chip"
-                              style={{ opacity: isPlaced ? 0.4 : 1, border: isPlaced ? '1px dashed #94a3b8' : '1px solid #1e40af' }}
+                              className={`drag-chip ${isPlaced ? 'placed' : ''}`}
                             >
-                              {item} {isPlaced ? '✓ (Đã chọn)' : ''}
+                              {item} {isPlaced ? '✓' : '+'}
                             </button>
                           );
                         })}
@@ -738,10 +996,215 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                   </>
                 )}
 
-                {/* --- Chế độ CATEGORIZE: kéo thả phân loại vào từng cột --- */}
+                {/* --- Mode MATCH: Statement Pair (Table-based Match) --- */}
+                {currentQ.dragMode === 'match' && (
+                  <>
+                    <div style={{
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      backgroundColor: '#ffffff',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}>
+                      {/* Table Header */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(0, 1.4fr) minmax(220px, 1fr)',
+                        backgroundColor: '#f8fafc',
+                        borderBottom: '1.5px solid #e2e8f0',
+                        padding: '0.85rem 1.25rem',
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        color: '#475569'
+                      }}>
+                        <div>Phát Biểu / Nội Dung Cần Ghép</div>
+                        <div style={{ textAlign: 'center' }}>Ô Trống Kéo Thả Đáp Án Khớp</div>
+                      </div>
+
+                      {/* Table Body Rows */}
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {(currentQ.matchPairs || currentQ.extractedBlanks || []).map((pair, pIdx) => {
+                          const blankId = pair.blankId || `BLANK_${pIdx}`;
+                          const leftText = pair.leftText || pair.leftWithBlank || pair.answer || '';
+                          const filledVal = (userAnswers[currentQ.instanceId] || {})[blankId];
+                          const isActive = activeSlotId === blankId;
+
+                          return (
+                            <div
+                              key={pIdx}
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'minmax(0, 1.4fr) minmax(220px, 1fr)',
+                                borderBottom: pIdx < (currentQ.matchPairs?.length || currentQ.extractedBlanks?.length) - 1 ? '1px solid #f1f5f9' : 'none',
+                                backgroundColor: isActive ? '#f5f3ff' : '#ffffff',
+                                transition: 'background-color 0.2s ease',
+                                alignItems: 'center'
+                              }}
+                            >
+                              {/* Left Cell: Statement */}
+                              <div style={{
+                                padding: '1.1rem 1.25rem',
+                                fontSize: '0.95rem',
+                                color: '#0f172a',
+                                fontWeight: 600,
+                                lineHeight: 1.6,
+                                borderRight: '1px solid #f1f5f9'
+                              }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '22px',
+                                  height: '22px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#eef2ff',
+                                  color: '#4f46e5',
+                                  fontWeight: 800,
+                                  fontSize: '0.78rem',
+                                  marginRight: '0.6rem'
+                                }}>
+                                  {pIdx + 1}
+                                </span>
+                                {leftText.replace(/\[BLANK_\d+\]/g, ' _____ ')}
+                              </div>
+
+                              {/* Right Cell: Drop Slot */}
+                              <div style={{ padding: '0.85rem 1.25rem', display: 'flex', justifyContent: 'center' }}>
+                                <div
+                                  onClick={() => {
+                                    if (filledVal) {
+                                      handleDropKeyword(currentQ.instanceId, blankId, null);
+                                      setActiveSlotId(blankId);
+                                    } else {
+                                      setActiveSlotId(isActive ? null : blankId);
+                                    }
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    maxWidth: '280px',
+                                    minHeight: '46px',
+                                    padding: '8px 14px',
+                                    borderRadius: '12px',
+                                    border: filledVal
+                                      ? '2px solid #4f46e5'
+                                      : isActive
+                                        ? '2px solid #6366f1'
+                                        : '2px dashed #cbd5e1',
+                                    backgroundColor: filledVal
+                                      ? '#eef2ff'
+                                      : isActive
+                                        ? '#faf5ff'
+                                        : '#f8fafc',
+                                    color: filledVal ? '#4f46e5' : isActive ? '#6366f1' : '#94a3b8',
+                                    fontWeight: filledVal ? 800 : 700,
+                                    fontSize: '0.875rem',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '0.5rem',
+                                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                                    boxShadow: filledVal
+                                      ? '0 2px 8px rgba(79, 70, 229, 0.15)'
+                                      : isActive
+                                        ? '0 0 0 3px rgba(99, 102, 241, 0.25)'
+                                        : 'none'
+                                  }}
+                                  title={filledVal ? "Nhấp để gỡ đáp án này" : "Nhấp để chọn ô này trước khi bấm từ khóa"}
+                                >
+                                  {filledVal ? (
+                                    <>
+                                      <span style={{ flex: 1, textAlign: 'left', wordBreak: 'break-word' }}>{filledVal}</span>
+                                      <span style={{
+                                        color: '#f43f5e',
+                                        backgroundColor: '#ffe4e6',
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '50%',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.75rem',
+                                        flexShrink: 0
+                                      }}>✕</span>
+                                    </>
+                                  ) : (
+                                    <span style={{ fontSize: '0.8rem', color: isActive ? '#6366f1' : '#94a3b8', width: '100%', textAlign: 'center' }}>
+                                      {isActive ? '⚡ Đang chọn ô này (bấm từ khóa)' : '＋ Bấm để chọn ô này'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Drag / Select Chips Bank */}
+                    <div style={{
+                      marginTop: '1rem',
+                      padding: '1.25rem',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '16px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>Mảnh ghép từ khóa (Nhấp từ khóa để tự động đưa vào ô trống):</span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                          {activeSlotId ? `🎯 Đang nhắm: Ô ${parseInt(activeSlotId.replace('BLANK_', '')) + 1}` : 'Tự động điền vào ô trống đầu tiên'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                        {(currentQ.dragItems || []).map((item, iIdx) => {
+                          const ans = userAnswers[currentQ.instanceId] || {};
+                          const isPlaced = Object.values(ans).includes(item);
+                          return (
+                            <button
+                              key={iIdx}
+                              onClick={() => {
+                                if (isPlaced) {
+                                  // Unplace
+                                  const key = Object.keys(ans).find(k => ans[k] === item);
+                                  if (key) handleDropKeyword(currentQ.instanceId, key, null);
+                                } else {
+                                  // Place to active slot or first empty
+                                  let targetSlot = activeSlotId && !ans[activeSlotId] ? activeSlotId : null;
+                                  if (!targetSlot) {
+                                    targetSlot = (currentQ.extractedBlanks || currentQ.matchPairs || []).map((b, idx) => b.blankId || `BLANK_${idx}`).find(bId => !ans[bId]);
+                                  }
+                                  if (targetSlot) {
+                                    handleDropKeyword(currentQ.instanceId, targetSlot, item);
+                                    // Move to next empty slot
+                                    const nextEmpty = (currentQ.extractedBlanks || currentQ.matchPairs || [])
+                                      .map((b, idx) => b.blankId || `BLANK_${idx}`)
+                                      .find(bId => bId !== targetSlot && !ans[bId]);
+                                    setActiveSlotId(nextEmpty || null);
+                                  }
+                                }
+                              }}
+                              className={`drag-chip ${isPlaced ? 'placed' : ''}`}
+                            >
+                              {item} {isPlaced ? '✓ (Đã chọn)' : '+'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* --- Mode CATEGORIZE: Multi-column classification --- */}
                 {currentQ.dragMode === 'categorize' && (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(currentQ.columns || []).length}, 1fr)`, gap: '1rem' }}>
+                    <div
+                      className="categorize-columns-grid"
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: `repeat(${Math.max(1, (currentQ.columns || []).length)}, 1fr)`,
+                        gap: '1.25rem'
+                      }}
+                    >
                       {(currentQ.columns || []).map((col, colIdx) => {
                         const ans = userAnswers[currentQ.instanceId] || {};
                         const placedItems = Object.entries(ans)
@@ -749,30 +1212,96 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                           .map(([k, v]) => ({ key: k, value: v }));
 
                         return (
-                          <div key={colIdx} style={{ border: '1.5px solid #bfdbfe', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
-                            <div style={{ backgroundColor: '#1e40af', color: '#fff', padding: '0.875rem 1rem', fontWeight: 700, fontSize: '0.875rem', lineHeight: 1.4, textAlign: 'center' }}>
+                          <div
+                            key={colIdx}
+                            style={{
+                              border: '1.5px solid #c7d2fe',
+                              borderRadius: '16px',
+                              overflow: 'hidden',
+                              backgroundColor: '#ffffff',
+                              boxShadow: 'var(--shadow-sm)',
+                              display: 'flex',
+                              flexDirection: 'column'
+                            }}
+                          >
+                            <div style={{
+                              background: 'var(--primary-gradient)',
+                              color: '#fff',
+                              padding: '1rem 1.25rem',
+                              fontWeight: 800,
+                              fontSize: '0.92rem',
+                              lineHeight: 1.5,
+                              textAlign: 'center',
+                              minHeight: '70px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
                               {col.header}
                             </div>
-                            <div style={{ padding: '0.875rem', minHeight: '120px', display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: '#f8fafc' }}>
+
+                            <div style={{
+                              padding: '1.25rem',
+                              minHeight: '180px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.75rem',
+                              backgroundColor: '#f8fafc',
+                              flex: 1
+                            }}>
                               {placedItems.map(it => (
                                 <div
                                   key={it.key}
                                   onClick={() => handleDropKeyword(currentQ.instanceId, it.key, null)}
                                   title="Nhấp để gỡ khỏi cột này"
                                   style={{
-                                    padding: '8px 12px', backgroundColor: '#eff6ff', border: '1.5px solid #bfdbfe',
-                                    borderRadius: '8px', color: '#1e40af', fontWeight: 700, fontSize: '0.85rem',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    gap: '0.5rem', transition: 'all 0.15s ease'
+                                    padding: '10px 14px',
+                                    backgroundColor: '#ffffff',
+                                    border: '1.5px solid #818cf8',
+                                    borderRadius: '12px',
+                                    color: '#312e81',
+                                    fontWeight: 700,
+                                    fontSize: '0.875rem',
+                                    lineHeight: 1.5,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    gap: '0.75rem',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: '0 2px 6px rgba(79, 70, 229, 0.08)'
                                   }}
                                 >
-                                  <span>{it.value}</span>
-                                  <span style={{ color: '#ef4444', fontWeight: 800, fontSize: '0.8rem' }}>✕ Gỡ</span>
+                                  <span style={{ flex: 1 }}>{it.value}</span>
+                                  <span style={{
+                                    color: '#f43f5e',
+                                    backgroundColor: '#ffe4e6',
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    fontWeight: 800,
+                                    fontSize: '0.75rem',
+                                    flexShrink: 0
+                                  }}>
+                                    ✕ Gỡ
+                                  </span>
                                 </div>
                               ))}
+
                               {placedItems.length === 0 && (
-                                <div style={{ color: '#94a3b8', fontSize: '0.8rem', textAlign: 'center', padding: '1.5rem 0.5rem', border: '1.5px dashed #cbd5e1', borderRadius: '8px' }}>
-                                  Kéo/Nhấp mảnh ghép bên dưới để thả vào cột này
+                                <div style={{
+                                  color: '#94a3b8',
+                                  fontSize: '0.85rem',
+                                  textAlign: 'center',
+                                  padding: '2.5rem 1rem',
+                                  border: '2px dashed #cbd5e1',
+                                  borderRadius: '12px',
+                                  backgroundColor: '#ffffff',
+                                  height: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}>
+                                  Chưa có mục nào (Bấm chọn cột từ danh sách bên dưới)
                                 </div>
                               )}
                             </div>
@@ -781,58 +1310,72 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                       })}
                     </div>
 
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '0.625rem' }}>
-                        Mảnh ghép cần phân loại (Nhấp mảnh ghép để gán vào cột hoặc nhấp chữ ✕ Gỡ để bỏ chọn):
+                    {/* Drag Items with Quick Column Targets */}
+                    <div style={{
+                      marginTop: '1.25rem',
+                      padding: '1.25rem',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '16px',
+                      border: '1.5px solid #e2e8f0'
+                    }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569', marginBottom: '0.875rem' }}>
+                        Mảnh ghép cần phân loại (Bấm nút [Vào Cột...] để xếp vào nhóm tương ứng):
                       </div>
-                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         {(currentQ.dragItems || []).map((item, iIdx) => {
                           const ans = userAnswers[currentQ.instanceId] || {};
                           const placedEntry = Object.entries(ans).find(([k, v]) => v === item);
                           const isPlaced = Boolean(placedEntry);
+                          let placedColIdx = -1;
+                          if (isPlaced) {
+                            const match = placedEntry[0].match(/COL_(\d+)_/);
+                            if (match) placedColIdx = parseInt(match[1]);
+                          }
 
                           return (
-                            <div key={iIdx} style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                              <button
-                                onClick={() => {
-                                  if (isPlaced) {
-                                    // Remove if already placed
-                                    handleDropKeyword(currentQ.instanceId, placedEntry[0], null);
-                                  } else {
-                                    // Assign to first matching/available column
-                                    const targetCol = (currentQ.columns || []).findIndex((col, cIdx) => {
-                                      const placed = Object.entries(ans).filter(([k]) => k.startsWith(`COL_${cIdx}_`)).map(([, v]) => v);
-                                      return col.items.includes(item) && !placed.includes(item);
-                                    });
-                                    const colIndexToUse = targetCol !== -1 ? targetCol : 0;
-                                    const col = currentQ.columns[colIndexToUse];
-                                    for (let slotIdx = 0; slotIdx < (col?.items?.length || 10); slotIdx++) {
-                                      const slotId = `COL_${colIndexToUse}_ITEM_${slotIdx}`;
-                                      if (!ans[slotId]) {
-                                        handleDropKeyword(currentQ.instanceId, slotId, item);
-                                        break;
-                                      }
-                                    }
-                                  }
-                                }}
-                                className="drag-chip"
-                                style={{
-                                  opacity: isPlaced ? 0.5 : 1,
-                                  backgroundColor: isPlaced ? '#f1f5f9' : '#ffffff',
-                                  border: isPlaced ? '1.5px dashed #94a3b8' : '1.5px solid #1e40af'
-                                }}
-                              >
-                                {item} {isPlaced ? '✓' : ''}
-                              </button>
+                            <div
+                              key={iIdx}
+                              style={{
+                                padding: '0.85rem 1.15rem',
+                                backgroundColor: isPlaced ? '#f8fafc' : '#ffffff',
+                                border: isPlaced ? '1.5px solid #cbd5e1' : '1.5px solid #e2e8f0',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '0.75rem',
+                                boxShadow: 'var(--shadow-xs)'
+                              }}
+                            >
+                              <div style={{ flex: 1, minWidth: '240px', fontSize: '0.9rem', fontWeight: 600, color: isPlaced ? '#64748b' : '#0f172a' }}>
+                                {item}
+                              </div>
 
-                              {/* Column selection buttons if user wants to explicitly choose column */}
-                              {!isPlaced && (currentQ.columns || []).length > 1 && (
-                                <div style={{ display: 'flex', gap: '3px' }}>
-                                  {currentQ.columns.map((col, cIdx) => (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {isPlaced ? (
+                                  <button
+                                    onClick={() => handleDropKeyword(currentQ.instanceId, placedEntry[0], null)}
+                                    style={{
+                                      padding: '6px 12px',
+                                      backgroundColor: '#fee2e2',
+                                      color: '#dc2626',
+                                      border: '1px solid #fca5a5',
+                                      borderRadius: '8px',
+                                      fontWeight: 800,
+                                      fontSize: '0.8rem',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    ✕ Đang ở Cột {placedColIdx + 1} (Bấm để gỡ)
+                                  </button>
+                                ) : (
+                                  (currentQ.columns || []).map((col, cIdx) => (
                                     <button
                                       key={cIdx}
                                       onClick={() => {
-                                        for (let slotIdx = 0; slotIdx < (col?.items?.length || 10); slotIdx++) {
+                                        for (let slotIdx = 0; slotIdx < 20; slotIdx++) {
                                           const slotId = `COL_${cIdx}_ITEM_${slotIdx}`;
                                           if (!ans[slotId]) {
                                             handleDropKeyword(currentQ.instanceId, slotId, item);
@@ -841,17 +1384,22 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                                         }
                                       }}
                                       style={{
-                                        fontSize: '0.68rem', fontWeight: 700, padding: '1px 5px',
-                                        borderRadius: '4px', border: '1px solid #bfdbfe',
-                                        backgroundColor: '#eff6ff', color: '#1e40af', cursor: 'pointer'
+                                        padding: '7px 13px',
+                                        backgroundColor: '#eef2ff',
+                                        color: '#4f46e5',
+                                        border: '1.5px solid #c7d2fe',
+                                        borderRadius: '8px',
+                                        fontWeight: 800,
+                                        fontSize: '0.8rem',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease'
                                       }}
-                                      title={`Gán vào: ${col.header}`}
                                     >
-                                      + Cột {cIdx + 1}
+                                      → Vào Cột {cIdx + 1}
                                     </button>
-                                  ))}
-                                </div>
-                              )}
+                                  ))
+                                )}
+                              </div>
                             </div>
                           );
                         })}
@@ -863,37 +1411,87 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
               </div>
             )}
 
-            {/* Nav Controls */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
-              <button disabled={currentIndex === 0} onClick={() => setCurrentIndex(prev => prev - 1)} className="btn-secondary" style={{ opacity: currentIndex === 0 ? 0.5 : 1 }}>
-                <ArrowLeft size={16} /> Câu Trước
-              </button>
-              <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Đã trả lời {answeredCount} / {activeQuestions.length} câu • Phím Enter: Câu tiếp theo</div>
-              {currentIndex < activeQuestions.length - 1 ? (
-                <button onClick={() => setCurrentIndex(prev => prev + 1)} className="btn-primary">
-                  Câu Tiếp <ArrowRight size={16} />
+            {/* Bottom Nav Controls */}
+            <div className="quiz-action-footer" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: '3rem',
+              paddingTop: '1.25rem',
+              borderTop: '1px solid #f1f5f9',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}>
+              <div className="btn-group" style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  disabled={currentIndex === 0}
+                  onClick={() => setCurrentIndex(prev => prev - 1)}
+                  className="btn-secondary"
+                  style={{ opacity: currentIndex === 0 ? 0.45 : 1, padding: '0.75rem 1.25rem' }}
+                >
+                  <ArrowLeft size={16} /> Câu Trước
                 </button>
-              ) : (
-                <button onClick={() => setShowSubmitConfirmModal(true)} className="btn-primary" style={{ backgroundColor: '#10b981' }}>
-                  Nộp Bài Thi <CheckCircle size={16} />
-                </button>
-              )}
+
+                {currentIndex < activeQuestions.length - 1 ? (
+                  <button
+                    onClick={() => setCurrentIndex(prev => prev + 1)}
+                    className="btn-primary"
+                    style={{ padding: '0.75rem 1.5rem' }}
+                  >
+                    Câu Tiếp <ArrowRight size={16} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowSubmitConfirmModal(true)}
+                    className="btn-success"
+                    style={{ padding: '0.75rem 1.5rem' }}
+                  >
+                    Nộp Bài Thi <CheckCircle size={16} />
+                  </button>
+                )}
+              </div>
+
+              <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+                Đã trả lời <strong style={{ color: '#4f46e5' }}>{answeredCount}</strong> / {activeQuestions.length} câu
+              </div>
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div className="lms-card" style={{ padding: '1.25rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem' }}>THỜI GIAN CÒN LẠI</div>
-              <div className={`timer-badge ${timeLeft < 180 ? 'danger' : timeLeft < 600 ? 'warning' : ''}`} style={{ justifyContent: 'center' }}>
+          {/* Right Sidebar: Timer & Question Matrix */}
+          <div className="quiz-palette-sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            
+            {/* Timer Card */}
+            <div className="lms-card" style={{ padding: '1.5rem', textAlign: 'center', boxShadow: 'var(--shadow-md)' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                THỜI GIAN CÒN LẠI
+              </div>
+              <div className={`timer-badge ${timeLeft < 180 ? 'danger' : timeLeft < 600 ? 'warning' : ''}`} style={{ justifyContent: 'center', width: '100%' }}>
                 <Clock size={22} /> {formatTime(timeLeft)}
               </div>
             </div>
 
-            <div className="lms-card" style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>Lưới Danh Sách Câu Hỏi</h4>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e40af' }}>{answeredCount}/{activeQuestions.length} Đã chọn</span>
+            {/* Matrix Card */}
+            <div className="lms-card" style={{ padding: '1.5rem', boxShadow: 'var(--shadow-md)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                  Ma Trận Câu Hỏi
+                </h4>
+                <span className="badge badge-primary">
+                  {answeredCount}/{activeQuestions.length} Đã xong
+                </span>
+              </div>
+
+              {/* Status Legend */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', marginBottom: '1rem', fontWeight: 600, padding: '0 2px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#eef2ff', border: '1px solid #c7d2fe' }} /> Đã làm
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} /> Đánh dấu
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--primary-gradient)' }} /> Đang xem
+                </span>
               </div>
 
               <div className="matrix-grid">
@@ -903,14 +1501,129 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                   const isCurrent = idx === currentIndex;
 
                   return (
-                    <button key={q.instanceId} onClick={() => setCurrentIndex(idx)} className={`matrix-btn ${isCurrent ? 'active' : isAns ? 'answered' : ''} ${isFlag ? 'flagged' : ''}`}>
+                    <button
+                      key={q.instanceId}
+                      onClick={() => setCurrentIndex(idx)}
+                      className={`matrix-btn ${isCurrent ? 'active' : isAns ? 'answered' : ''} ${isFlag ? 'flagged' : ''}`}
+                    >
                       {idx + 1}
                     </button>
                   );
                 })}
               </div>
 
-              <button onClick={() => setShowSubmitConfirmModal(true)} className="btn-primary" style={{ width: '100%', marginTop: '1.25rem', justifyContent: 'center', backgroundColor: '#10b981' }}>
+              <button
+                onClick={() => setShowSubmitConfirmModal(true)}
+                className="btn-success"
+                style={{ width: '100%', marginTop: '1.5rem', justifyContent: 'center' }}
+              >
+                Nộp Bài Hoàn Thành
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE QUESTION MATRIX MODAL / BOTTOM SHEET ─────────────────────── */}
+      {showMobileMatrixModal && isTestActive && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 300,
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center'
+        }} className="animate-fade-in" onClick={() => setShowMobileMatrixModal(false)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#ffffff',
+              borderTopLeftRadius: '24px',
+              borderTopRightRadius: '24px',
+              padding: '1.5rem 1.25rem 2rem 1.25rem',
+              width: '100%',
+              maxWidth: '520px',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              boxShadow: 'var(--shadow-xl)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+              <div>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                  Ma Trận Câu Hỏi
+                </h4>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                  Đã hoàn thành {answeredCount} / {activeQuestions.length} câu • Còn {formatTime(timeLeft)}
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowMobileMatrixModal(false)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f1f5f9',
+                  border: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  color: '#64748b'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Status Legend */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginBottom: '1.25rem', fontWeight: 600, padding: '0 4px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#eef2ff', border: '1px solid #c7d2fe' }} /> Đã làm
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} /> Đánh dấu
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'var(--primary-gradient)' }} /> Đang xem
+              </span>
+            </div>
+
+            {/* Matrix buttons */}
+            <div className="matrix-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+              {activeQuestions.map((q, idx) => {
+                const isAns = isQuestionAnswered(q.instanceId);
+                const isFlag = flaggedQuestions[q.instanceId];
+                const isCurrent = idx === currentIndex;
+
+                return (
+                  <button
+                    key={q.instanceId}
+                    onClick={() => {
+                      setCurrentIndex(idx);
+                      setShowMobileMatrixModal(false);
+                    }}
+                    className={`matrix-btn ${isCurrent ? 'active' : isAns ? 'answered' : ''} ${isFlag ? 'flagged' : ''}`}
+                    style={{ height: '46px', fontSize: '0.95rem' }}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => {
+                  setShowMobileMatrixModal(false);
+                  setShowSubmitConfirmModal(true);
+                }}
+                className="btn-success"
+                style={{ flex: 1, padding: '0.85rem', justifyContent: 'center' }}
+              >
                 Nộp Bài Hoàn Thành
               </button>
             </div>
@@ -920,22 +1633,60 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
 
       {/* ── SUBMIT CONFIRMATION MODAL ─────────────────────────────────────── */}
       {showSubmitConfirmModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.65)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '2rem', maxWidth: '440px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', textAlign: 'center' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-              <AlertTriangle size={28} />
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 200,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }} className="animate-fade-in">
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            padding: '2.25rem',
+            maxWidth: '460px',
+            width: '100%',
+            boxShadow: 'var(--shadow-xl)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              backgroundColor: '#fffbeb',
+              color: '#b45309',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem auto',
+              border: '2px solid #fde68a'
+            }}>
+              <AlertTriangle size={30} />
             </div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
               Xác Nhận Nộp Bài Thi?
             </h3>
-            <p style={{ color: '#475569', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-              Bạn đã trả lời <strong>{answeredCount} / {activeQuestions.length}</strong> câu hỏi. Bạn có chắc chắn muốn nộp bài thi ngay bây giờ?
+
+            <p style={{ color: '#475569', fontSize: '0.925rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+              Bạn đã trả lời <strong style={{ color: '#4f46e5' }}>{answeredCount} / {activeQuestions.length}</strong> câu hỏi.
+              {answeredCount < activeQuestions.length && (
+                <span style={{ display: 'block', color: '#f43f5e', fontWeight: 700, marginTop: '0.35rem' }}>
+                  ⚠️ Còn {activeQuestions.length - answeredCount} câu chưa trả lời!
+                </span>
+              )}
             </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+
+            <div style={{ display: 'flex', gap: '0.875rem', justifyContent: 'center' }}>
               <button
                 onClick={() => setShowSubmitConfirmModal(false)}
                 className="btn-secondary"
-                style={{ flex: 1, padding: '0.65rem 1rem', fontSize: '0.9rem' }}
+                style={{ flex: 1, padding: '0.75rem 1rem' }}
               >
                 Tiếp Tục Làm Bài
               </button>
@@ -944,8 +1695,8 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                   setShowSubmitConfirmModal(false);
                   handleFinalSubmit();
                 }}
-                className="btn-primary"
-                style={{ flex: 1, backgroundColor: '#10b981', padding: '0.65rem 1rem', fontSize: '0.9rem', fontWeight: 800 }}
+                className="btn-success"
+                style={{ flex: 1, padding: '0.75rem 1rem' }}
               >
                 Xác Nhận Nộp
               </button>

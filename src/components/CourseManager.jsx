@@ -263,45 +263,45 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
   return (
     <div style={{ maxWidth: '1200px', margin: '2rem auto', padding: '0 1rem' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>
-            Quản Lý Học Phần & Câu Hỏi
+          <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
+            Quản Lý Học Phần & Ngân Hàng Câu Hỏi
           </h2>
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-            Thêm, sửa, xóa Học phần — Bài học — Câu hỏi trong ngân hàng đề.
+          <p style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
+            Thêm, chỉnh sửa, xóa và cấu trúc hóa Học phần — Bài học — Câu hỏi trực tiếp.
           </p>
         </div>
         <button onClick={openAddCourse} className="btn-primary">
-          <Plus size={16} /> Thêm Học Phần Mới
+          <Plus size={18} /> Thêm Học Phần Mới
         </button>
       </div>
 
       {/* Stats bar */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
         {[
-          { label: 'Học phần', value: courses.length, color: '#1e40af', icon: <BookOpen size={18} /> },
-          { label: 'Bài học', value: lessons.length, color: '#7c3aed', icon: <Layers size={18} /> },
-          { label: 'Câu hỏi', value: questions.length, color: '#065f46', icon: <HelpCircle size={18} /> },
+          { label: 'Học phần trong hệ thống', value: courses.length, gradient: 'var(--primary-gradient)', icon: <BookOpen size={20} /> },
+          { label: 'Bài học đã phân chia', value: lessons.length, gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', icon: <Layers size={20} /> },
+          { label: 'Tổng số câu hỏi', value: questions.length, gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', icon: <HelpCircle size={20} /> },
         ].map((s, i) => (
-          <div key={i} style={{ flex: 1, backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: s.color + '15', color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div key={i} className="lms-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: s.gradient, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               {s.icon}
             </div>
             <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>{s.value}</div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>{s.label}</div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{s.value}</div>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>{s.label}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Course list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {courses.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+          <div style={{ textAlign: 'center', padding: '3.5rem', color: '#94a3b8', border: '2px dashed #cbd5e1', borderRadius: '16px', backgroundColor: '#f8fafc' }}>
             <BookOpen size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-            <p>Chưa có học phần nào. Nhấp "Thêm Học Phần Mới" để bắt đầu.</p>
+            <p style={{ fontWeight: 600 }}>Chưa có học phần nào. Nhấp "Thêm Học Phần Mới" để bắt đầu.</p>
           </div>
         )}
 
@@ -311,34 +311,34 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
           const isExpanded = expandedCourses[course.id];
 
           return (
-            <div key={course.id} style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div key={course.id} className="lms-card" style={{ overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}>
               {/* Course header row */}
-              <div style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none', backgroundColor: '#fafafa' }}>
-                <button onClick={() => toggleCourse(course.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}>
-                  {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+              <div style={{ padding: '1.15rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.875rem', borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none', backgroundColor: '#fafbff' }}>
+                <button onClick={() => toggleCourse(course.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', padding: '4px' }}>
+                  {isExpanded ? <ChevronDown size={22} color="#4f46e5" /> : <ChevronRight size={22} />}
                 </button>
 
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontWeight: 800, color: '#1e40af', fontSize: '0.85rem', backgroundColor: '#eff6ff', padding: '2px 8px', borderRadius: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                    <span style={{ fontWeight: 800, color: '#4f46e5', fontSize: '0.8rem', backgroundColor: '#eef2ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #c7d2fe' }}>
                       {course.code}
                     </span>
-                    <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '1rem' }}>{course.title}</span>
+                    <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem' }}>{course.title}</span>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.15rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem', fontWeight: 500 }}>
                     {courseLessons.length} bài học • {courseQCount} câu hỏi
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => openAddLesson(course.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '5px 10px', borderRadius: '6px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', color: '#1e40af', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}>
-                    <Plus size={13} /> Thêm Bài
+                  <button onClick={() => openAddLesson(course.id)} className="btn-outline-primary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}>
+                    <Plus size={14} /> Thêm Bài
                   </button>
-                  <button onClick={() => openEditCourse(course)} style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#475569', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Pencil size={13} /> Sửa
+                  <button onClick={() => openEditCourse(course)} className="btn-secondary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}>
+                    <Pencil size={14} /> Sửa
                   </button>
-                  <button onClick={() => setConfirmDelete({ type: 'course', id: course.id, name: course.title })} style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Trash2 size={13} /> Xóa
+                  <button onClick={() => setConfirmDelete({ type: 'course', id: course.id, name: course.title })} style={{ padding: '0.4rem 0.85rem', borderRadius: '8px', border: '1px solid #fecdd3', backgroundColor: '#fff1f2', color: '#f43f5e', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Trash2 size={14} /> Xóa
                   </button>
                 </div>
               </div>
@@ -700,13 +700,32 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
 // ── Reusable modal components ──────────────────────────────────────────────────
 function ModalWrapper({ title, onClose, children, wide = false }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.65)', zIndex: 150, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', overflowY: 'auto' }}>
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: wide ? '680px' : '500px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'rgba(15, 23, 42, 0.65)',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      zIndex: 150,
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      padding: '2.5rem 1rem',
+      overflowY: 'auto'
+    }} className="animate-fade-in">
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '20px',
+        padding: '2.25rem',
+        width: '100%',
+        maxWidth: wide ? '720px' : '520px',
+        boxShadow: 'var(--shadow-xl)'
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>{title}</h3>
-          <button onClick={onClose} style={{ padding: '4px', borderRadius: '6px', border: 'none', cursor: 'pointer', backgroundColor: '#f1f5f9', color: '#64748b' }}><X size={18} /></button>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>{title}</h3>
+          <button onClick={onClose} style={{ padding: '6px', borderRadius: '8px', border: 'none', cursor: 'pointer', backgroundColor: '#f1f5f9', color: '#64748b' }}><X size={18} /></button>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>{children}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>{children}</div>
       </div>
     </div>
   );

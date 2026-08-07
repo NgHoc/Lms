@@ -276,24 +276,23 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".docx,.pdf" style={{ display: 'none' }} />
 
       {/* Top Header & Course Management Controls */}
-      <div style={{
-        backgroundColor: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '16px',
-        padding: '1.75rem',
-        marginBottom: '1.5rem',
-        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+      <div className="lms-card" style={{
+        padding: '2rem',
+        marginBottom: '1.75rem',
+        boxShadow: 'var(--shadow-md)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <Cpu style={{ color: '#1e40af' }} size={24} />
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
-                Quản Lý Học Phần & Thuật Toán Bóc Tách Đề
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.35rem' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--primary-gradient)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Cpu size={20} />
+              </div>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                Bóc Tách Bộ Đề Tự Động & Quản Trị
               </h2>
             </div>
-            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-              Tạo Học phần, thêm Bài học và tải lên tập tin ngân hàng câu hỏi tự động bóc tách vào Database.
+            <p style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
+              Tải lên file Word (.docx) để thuật toán tự động nhận diện câu hỏi, đáp án bôi đỏ và nạp vào cơ sở dữ liệu.
             </p>
           </div>
 
@@ -301,7 +300,7 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
             <button
               onClick={() => setShowAddCourseModal(true)}
               className="btn-primary"
-              style={{ fontSize: '0.85rem', padding: '0.55rem 1rem' }}
+              style={{ fontSize: '0.85rem', padding: '0.6rem 1.15rem' }}
             >
               <Plus size={16} />
               Thêm Học Phần Mới
@@ -309,7 +308,7 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
             <button
               onClick={() => setShowAddLessonModal(true)}
               className="btn-secondary"
-              style={{ fontSize: '0.85rem', padding: '0.55rem 1rem' }}
+              style={{ fontSize: '0.85rem', padding: '0.6rem 1.15rem' }}
             >
               <Plus size={16} />
               Thêm Bài Học Mới
@@ -318,10 +317,10 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
         </div>
 
         {/* Dropdowns for Selecting Course & Lesson */}
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
           <div style={{ flex: 1, minWidth: '260px' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
-              HỌC PHẦN ĐANG CHỌN:
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '0.4rem', letterSpacing: '0.02em' }}>
+              HỌC PHẦN ĐÍCH ĐỂ NẠP CÂU HỎI:
             </label>
             <select
               value={selectedCourse}
@@ -331,28 +330,28 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
                 const firstL = lessons.find(l => l.courseId === cId);
                 setSelectedLesson(firstL ? firstL.id : "");
               }}
-              style={{ width: '100%', padding: '0.6rem 0.875rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', backgroundColor: '#ffffff', fontSize: '0.875rem', fontWeight: 600 }}
+              style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', backgroundColor: '#ffffff', fontSize: '0.875rem', fontWeight: 700, color: '#0f172a', outline: 'none' }}
             >
               {courses.map(c => (
-                <option key={c.id} value={c.id}>{c.code} - {c.title} ({c.questionsCount} câu)</option>
+                <option key={c.id} value={c.id}>{c.code} - {c.title} ({c.questionsCount || 0} câu)</option>
               ))}
             </select>
           </div>
 
           <div style={{ flex: 1, minWidth: '260px' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: '0.35rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#334155', marginBottom: '0.4rem', letterSpacing: '0.02em' }}>
               BÀI HỌC CHỈ ĐỊNH ĐỂ LƯU CÂU HỎI:
             </label>
             <select
               value={selectedLesson}
               onChange={(e) => setSelectedLesson(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem 0.875rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', backgroundColor: '#ffffff', fontSize: '0.875rem', fontWeight: 600 }}
+              style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', backgroundColor: '#ffffff', fontSize: '0.875rem', fontWeight: 700, color: '#0f172a', outline: 'none' }}
             >
               {currentCourseLessons.length === 0 ? (
                 <option value="">(Chưa có bài học nào - Hãy bấm Thêm Bài Học)</option>
               ) : (
                 currentCourseLessons.map(l => (
-                  <option key={l.id} value={l.id}>{l.title}</option>
+                  <option key={l.id} value={l.id}>Bài {l.lessonNumber}: {l.title}</option>
                 ))
               )}
             </select>
@@ -363,28 +362,28 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
       {/* Notifications */}
       {saveSuccessMsg && (
         <div style={{
-          marginBottom: '1.5rem',
-          padding: '1rem 1.25rem',
+          marginBottom: '1.75rem',
+          padding: '1.15rem 1.5rem',
           backgroundColor: '#ecfdf5',
           border: '1.5px solid #10b981',
-          borderRadius: '12px',
+          borderRadius: '14px',
           color: '#047857',
-          fontWeight: 700,
+          fontWeight: 800,
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-        }}>
-          <CheckCircle2 size={24} />
+          boxShadow: 'var(--shadow-md)'
+        }} className="animate-fade-in">
+          <CheckCircle2 size={24} color="#10b981" />
           {saveSuccessMsg}
         </div>
       )}
 
       {/* Upload Dropzone & Live Logs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        <div className="lms-card" style={{ padding: '1.75rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Upload size={18} style={{ color: '#1e40af' }} />
+        <div className="lms-card" style={{ padding: '1.75rem', boxShadow: 'var(--shadow-md)' }}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Upload size={18} style={{ color: '#4f46e5' }} />
             Tải Lên Bộ Đề Ngân Hàng (.docx / .pdf)
           </h3>
 
@@ -393,51 +392,64 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             style={{
-              border: '2px dashed #bfdbfe',
-              backgroundColor: '#eff6ff',
-              borderRadius: '12px',
-              padding: '2rem 1.5rem',
+              border: '2px dashed #c7d2fe',
+              backgroundColor: '#fafbff',
+              borderRadius: '16px',
+              padding: '2.5rem 1.5rem',
               textAlign: 'center',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
             }}
           >
-            <FileText size={42} style={{ color: '#1e40af', marginBottom: '0.75rem' }} />
-            <p style={{ fontWeight: '700', color: '#1e40af', marginBottom: '0.25rem', fontSize: '1rem' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: '#eef2ff',
+              color: '#4f46e5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem auto'
+            }}>
+              <FileText size={28} />
+            </div>
+            <p style={{ fontWeight: 800, color: '#4f46e5', marginBottom: '0.35rem', fontSize: '1.05rem' }}>
               Nhấp vào đây để CHỌN FILE THỰC từ máy tính
             </p>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>
-              Kéo thả file (.docx / .pdf) trực tiếp vào đây
+            <p style={{ fontSize: '0.825rem', color: '#64748b', marginBottom: '1.25rem' }}>
+              Hỗ trợ kéo thả file Word (.docx) có câu hỏi bôi đỏ
             </p>
-            <button type="button" className="btn-primary" style={{ padding: '8px 20px', borderRadius: '9999px', margin: '0 auto' }}>
+            <button type="button" className="btn-primary" style={{ padding: '9px 24px', borderRadius: '9999px', margin: '0 auto' }}>
               <Upload size={16} /> Chọn File Từ Máy Tính
             </button>
           </div>
 
-          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>File Mẫu Mô Phỏng:</span>
+          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>File Mẫu Sẵn Có:</span>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button onClick={() => handleSimulateUpload('MauWord_BoDe.docx')} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
+              <button onClick={() => handleSimulateUpload('MauWord_BoDe.docx')} className="btn-secondary" style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
                 File .docx Mẫu
               </button>
-              <button onClick={() => handleSimulateUpload('MauPDF_DeThi.pdf')} className="btn-secondary" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
+              <button onClick={() => handleSimulateUpload('MauPDF_DeThi.pdf')} className="btn-secondary" style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
                 File .pdf Mẫu
               </button>
             </div>
           </div>
 
           {errorMsg && (
-            <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#dc2626', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertCircle size={16} /> {errorMsg}
+            <div style={{ marginTop: '1rem', padding: '0.875rem', backgroundColor: '#fff1f2', border: '1.5px solid #fecdd3', borderRadius: '10px', color: '#e11d48', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertCircle size={18} /> {errorMsg}
             </div>
           )}
 
           {fileName && (
-            <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <FileText size={16} style={{ color: '#1e40af' }} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{fileName}</span>
+            <div style={{ marginTop: '1rem', padding: '0.875rem 1.15rem', backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <FileText size={18} style={{ color: '#4f46e5' }} />
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a' }}>{fileName}</span>
               </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: isParsing ? '#fffbeb' : '#ecfdf5', color: isParsing ? '#b45309' : '#047857', padding: '2px 8px', borderRadius: '9999px' }}>
+              <span className={`badge ${isParsing ? 'badge-warning' : 'badge-success'}`}>
                 {isParsing ? 'Đang bóc tách...' : 'Đã tải lên'}
               </span>
             </div>
@@ -445,13 +457,13 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
         </div>
 
         {/* Engine Console Log */}
-        <div className="lms-card" style={{ padding: '1.75rem', backgroundColor: '#0f172a', color: '#f8fafc' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="lms-card" style={{ padding: '1.75rem', backgroundColor: '#0f172a', color: '#f8fafc', boxShadow: 'var(--shadow-md)' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '1rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Code size={18} />
-            Parser Engine Console Log
+            Parser Engine Terminal Console
           </h3>
 
-          <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', lineHeight: 1.6, height: '210px', overflowY: 'auto', backgroundColor: '#020617', padding: '0.875rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: '0.8rem', lineHeight: 1.7, height: '230px', overflowY: 'auto', backgroundColor: '#020617', padding: '1rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
             {parseLog.length === 0 ? (
               <span style={{ color: '#64748b' }}>// Nhấp chọn file từ máy tính để bóc tách ngân hàng câu hỏi...</span>
             ) : (
@@ -492,10 +504,13 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
                   <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
                     {q.content || q.rawText}
                   </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#eff6ff', color: '#1e40af', padding: '3px 10px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, backgroundColor: '#eff6ff', color: '#1e40af', padding: '4px 12px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
                     {q.parsedType === 'SINGLE_CHOICE' ? 'Dạng 1: Trắc nghiệm 1 đáp án' :
                      q.parsedType === 'MULTI_CHOICE' ? 'Dạng 1: Trắc nghiệm Nhiều đáp án' :
-                     q.parsedType === 'TRUE_FALSE' ? 'Dạng 2: Đúng / Sai' : 'Dạng 3: Điền khuyết / Kéo thả'}
+                     q.parsedType === 'TRUE_FALSE' ? 'Dạng 2: Đúng / Sai' :
+                     (q.dragMode === 'categorize' || (q.columns && q.columns.length > 0)) ? 'Dạng 3: Kéo thả Phân loại cột' :
+                     (q.dragMode === 'match' || (q.matchPairs && q.matchPairs.length > 0)) ? 'Dạng 3: Kéo thả Ghép bảng' :
+                     'Dạng 3: Điền khuyết đoạn văn'}
                   </span>
                 </div>
 
@@ -509,13 +524,64 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
                     ))}
                   </div>
                 ) : (
-                  <div style={{ backgroundColor: '#eff6ff', padding: '1rem', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-                    <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e40af', marginBottom: '0.5rem' }}>Kịch bản đục lỗ (Generated Blank Template):</p>
-                    <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500, marginBottom: '0.5rem' }}>{q.renderedTemplate}</div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Mảnh ghép kéo thả:</span>
-                      {(q.extractedBlanks || []).map((b, bIdx) => (
-                        <span key={bIdx} className="drag-chip">{b.answer}</span>
+                  <div style={{ backgroundColor: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                    {/* Mode Categorize: Show Target Columns */}
+                    {(q.dragMode === 'categorize' || (q.columns && q.columns.length > 0)) && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#4338ca', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          🎯 Bảng đích phân loại (Gồm {(q.columns || []).length} cột tiêu đề):
+                        </div>
+                        <div className="categorize-columns-grid" style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, (q.columns || []).length)}, 1fr)`, gap: '1rem' }}>
+                          {(q.columns || []).map((col, cIdx) => (
+                            <div key={cIdx} style={{ backgroundColor: '#ffffff', border: '1.5px solid #c7d2fe', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-xs)' }}>
+                              <div style={{ background: 'var(--primary-gradient)', color: '#ffffff', fontWeight: 800, fontSize: '0.82rem', padding: '0.6rem 0.85rem' }}>
+                                Cột {cIdx + 1}: {col.header}
+                              </div>
+                              <div style={{ padding: '0.75rem', backgroundColor: '#f8fafc' }}>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '0.4rem' }}>
+                                  Nội dung chuẩn thuộc cột này ({(col.items || []).length} mục):
+                                </div>
+                                <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.82rem', color: '#065f46', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {(col.items || []).map((it, iIdx) => (
+                                    <li key={iIdx}>{it}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mode Match */}
+                    {q.dragMode === 'match' && !q.columns && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.875rem' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#4f46e5' }}>Các cặp phát biểu & ô trống được bóc tách từ bảng:</div>
+                        {(q.matchPairs || q.extractedBlanks || []).map((p, pIdx) => (
+                          <div key={pIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '0.6rem 0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
+                            <span style={{ color: '#0f172a', fontWeight: 600 }}>{pIdx + 1}. {(p.leftText || p.leftWithBlank || '').replace(/\[BLANK_\d+\]/g, '_____')}</span>
+                            <span style={{ color: '#059669', backgroundColor: '#ecfdf5', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, border: '1px solid #a7f3d0' }}>
+                              Đáp án: {p.rightAnswer || p.answer || '(Trống)'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Mode Inline Blank */}
+                    {(!q.dragMode || q.dragMode === 'inline') && !q.columns && !q.matchPairs && (
+                      <>
+                        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4f46e5', marginBottom: '0.5rem' }}>Kịch bản đục lỗ (Generated Blank Template):</p>
+                        <div style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: 500, marginBottom: '0.75rem', backgroundColor: '#ffffff', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>{q.renderedTemplate}</div>
+                      </>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.75rem', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 800 }}>
+                        Ngân hàng mảnh ghép học viên sẽ kéo thả ({(q.dragItems || []).length} mục):
+                      </span>
+                      {(q.dragItems || (q.extractedBlanks || []).map(b => b.answer)).map((item, bIdx) => (
+                        <span key={bIdx} className="drag-chip" style={{ fontSize: '0.8rem', padding: '4px 10px' }}>{item}</span>
                       ))}
                     </div>
                   </div>
@@ -528,46 +594,57 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
 
       {/* Modal 1: Add Course */}
       {showAddCourseModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,23,42,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div className="lms-card" style={{ width: '100%', maxWidth: '480px', padding: '2rem', backgroundColor: '#ffffff' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <BookOpen style={{ color: '#1e40af' }} size={22} />
-              Thêm Học Phần Mới
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 150,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }} className="animate-fade-in">
+          <div className="lms-card" style={{ width: '100%', maxWidth: '500px', padding: '2.25rem', backgroundColor: '#ffffff', borderRadius: '20px', boxShadow: 'var(--shadow-xl)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', letterSpacing: '-0.02em' }}>
+              <BookOpen style={{ color: '#4f46e5' }} size={22} />
+              Thêm Học Phần Mới Vào Hệ Thống
             </h3>
 
             <form onSubmit={handleAddCourse}>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>Mã Học Phần (Mã môn):</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>Mã Học Phần (Code):</label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: POL101, ML202..."
+                  placeholder="Ví dụ: MLN122, CS101, IT304..."
                   value={newCourseCode}
                   onChange={(e) => setNewCourseCode(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem' }}
+                  style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
                 />
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>Tên Học Phần:</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>Tên Học Phần Đầy Đủ:</label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Chủ Nghĩa Xã Hội Khoa Học"
+                  placeholder="Ví dụ: Chủ nghĩa xã hội khoa học"
                   value={newCourseTitle}
                   onChange={(e) => setNewCourseTitle(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem' }}
+                  style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
                 />
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>Mô Tả Học Phần:</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>Mô Tả Học Phần:</label>
                 <textarea
-                  placeholder="Mô tả tóm tắt nội dung môn học..."
+                  placeholder="Mô tả tóm tắt nội dung học phần..."
                   value={newCourseDesc}
                   onChange={(e) => setNewCourseDesc(e.target.value)}
                   rows={3}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem' }}
+                  style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', resize: 'vertical', outline: 'none' }}
                 />
               </div>
 
@@ -586,20 +663,31 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
 
       {/* Modal 2: Add Lesson */}
       {showAddLessonModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,23,42,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div className="lms-card" style={{ width: '100%', maxWidth: '480px', padding: '2rem', backgroundColor: '#ffffff' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Layers style={{ color: '#1e40af' }} size={22} />
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 150,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }} className="animate-fade-in">
+          <div className="lms-card" style={{ width: '100%', maxWidth: '500px', padding: '2.25rem', backgroundColor: '#ffffff', borderRadius: '20px', boxShadow: 'var(--shadow-xl)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', letterSpacing: '-0.02em' }}>
+              <Layers style={{ color: '#4f46e5' }} size={22} />
               Thêm Bài Học Cho Học Phần
             </h3>
 
             <form onSubmit={handleAddLesson}>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>Thuộc Học Phần:</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>Thuộc Học Phần:</label>
                 <select
                   value={selectedCourse}
                   onChange={(e) => setSelectedCourse(e.target.value)}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 600 }}
+                  style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', fontWeight: 700, outline: 'none' }}
                 >
                   {courses.map(c => (
                     <option key={c.id} value={c.id}>{c.code} - {c.title}</option>
@@ -608,25 +696,25 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>Tên Bài Học:</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>Tên Bài Học:</label>
                 <input
                   type="text"
                   placeholder="Ví dụ: Bài 1: Sứ mệnh lịch sử của giai cấp công nhân"
                   value={newLessonTitle}
                   onChange={(e) => setNewLessonTitle(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem' }}
+                  style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
                 />
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem' }}>Số Thứ Tự Bài:</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#334155', marginBottom: '0.35rem' }}>Số Thứ Tự Bài:</label>
                 <input
                   type="number"
                   min="1"
                   value={newLessonNumber}
                   onChange={(e) => setNewLessonNumber(e.target.value)}
-                  style={{ width: '100%', padding: '0.625rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem' }}
+                  style={{ width: '100%', padding: '0.65rem 0.875rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
                 />
               </div>
 

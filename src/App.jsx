@@ -70,20 +70,24 @@ export default function App() {
         {activeTab === 'architecture' && <ArchitectureViewer />}
       </main>
 
-      {/* Footer */}
+      {/* Modern Footer */}
       <footer style={{
         backgroundColor: '#ffffff',
         borderTop: '1px solid #e2e8f0',
-        padding: '1rem 1.5rem',
+        padding: '1.25rem 1.5rem',
         color: '#64748b',
-        fontSize: '0.82rem'
+        fontSize: '0.85rem'
       }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div>© 2026 Antigravity LMS v3.1 — Full Persistence & Dynamic Quiz Engine</div>
-          <div style={{ display: 'flex', gap: '1.25rem', fontWeight: 700, color: '#1e40af' }}>
-            <span>📚 {courses.length} Học phần</span>
-            <span>📖 {lessons.length} Bài học</span>
-            <span>❓ {questions.length} Câu hỏi</span>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontWeight: 800, color: '#0f172a' }}>Antigravity LMS PRO</span>
+            <span>•</span>
+            <span>Nền tảng thi trắc nghiệm & ôn tập thông minh</span>
+          </div>
+          <div style={{ display: 'flex', gap: '1.25rem', fontWeight: 700, color: '#4f46e5' }}>
+            <span style={{ backgroundColor: '#eef2ff', padding: '4px 10px', borderRadius: '8px', border: '1px solid #c7d2fe' }}>📚 {courses.length} Học phần</span>
+            <span style={{ backgroundColor: '#f3e8ff', padding: '4px 10px', borderRadius: '8px', border: '1px solid #ddd6fe', color: '#7c3aed' }}>📖 {lessons.length} Bài học</span>
+            <span style={{ backgroundColor: '#ecfdf5', padding: '4px 10px', borderRadius: '8px', border: '1px solid #a7f3d0', color: '#059669' }}>❓ {questions.length} Câu hỏi</span>
           </div>
         </div>
       </footer>
