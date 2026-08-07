@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, Cpu, Eye, Database, Code, Plus, BookOpen, Layers, Save, Check } from 'lucide-react';
 import { parseDocxFile } from '../utils/docxParser';
+import Toast from './Toast';
 
 export default function AdminParser({ courses, setCourses, lessons, setLessons, questions, setQuestions }) {
   const [selectedCourse, setSelectedCourse] = useState(courses[0]?.id || "");
@@ -11,6 +12,7 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
   const [parseLog, setParseLog] = useState([]);
   const [errorMsg, setErrorMsg] = useState(null);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(null);
+  const [toast, setToast] = useState(null);
 
   // Modals state
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
@@ -161,6 +163,11 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
       console.error(err);
       setErrorMsg("Lỗi khi đọc file: " + (err.message || "Vui lòng chọn file .docx hoặc .pdf hợp lệ"));
       setParseLog(prev => [...prev, `[ERROR] ${err.message}`]);
+      setToast({
+        type: 'error',
+        title: 'Lỗi Đọc File',
+        message: err.message || 'Không thể bóc tách nội dung từ tệp tin đã chọn. Vui lòng kiểm tra định dạng file .docx!'
+      });
     } finally {
       setIsParsing(false);
     }
@@ -169,8 +176,22 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
   // Save Questions to Database Logic
   const handleSaveToDatabase = () => {
     if (!parseResults || parseResults.length === 0) return;
+    
+    if (courses.length === 0) {
+      setToast({
+        type: 'warning',
+        title: 'Chưa Có Học Phần',
+        message: 'Bạn chưa tạo Học phần nào. Vui lòng nhấn nút "+ Thêm Học Phần Mới" ở góc trên để tạo trước!'
+      });
+      return;
+    }
+
     if (!selectedLesson) {
-      alert("Vui lòng chọn Bài học để lưu ngân hàng câu hỏi vào!");
+      setToast({
+        type: 'warning',
+        title: 'Chưa Chọn Bài Học',
+        message: 'Vui lòng chọn Bài học chỉ định ở thanh lựa chọn phía trên để lưu ngân hàng câu hỏi vào!'
+      });
       return;
     }
 
@@ -226,6 +247,11 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
     // Update Questions Count in Course
     setCourses(prev => prev.map(c => c.id === selectedCourse ? { ...c, questionsCount: c.questionsCount + formattedQuestions.length } : c));
 
+    setToast({
+      type: 'success',
+      title: 'Đã Lưu Vào Database',
+      message: `Đã nạp thành công ${formattedQuestions.length} câu hỏi vào Database cho Bài học đã chọn!`
+    });
     setSaveSuccessMsg(`Đã lưu thành công ${formattedQuestions.length} câu hỏi vào Database PostgreSQL cho Bài học đã chọn!`);
     setParseResults(null);
 
@@ -730,6 +756,9 @@ export default function AdminParser({ courses, setCourses, lessons, setLessons, 
           </div>
         </div>
       )}
+
+      {/* Modern Toast Notification */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

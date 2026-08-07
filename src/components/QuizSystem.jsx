@@ -2,10 +2,16 @@ import React, { useState, useEffect } from 'react';
 import {
   Clock, Flag, CheckCircle, ArrowLeft, ArrowRight, Award, AlertTriangle,
   Play, RefreshCw, Bookmark, HelpCircle, Layers, Check, Sparkles, BookOpen, ChevronRight,
-  TrendingUp, Target, History, Trash2, X, Eye, Calendar
+  TrendingUp, Target, History, Trash2, X, Eye, Calendar, Filter
 } from 'lucide-react';
 import QuizResult from './QuizResult';
-import { getInitialHistory, addHistoryItem, clearHistoryFromStorage } from '../store/lmsStore';
+import {
+  getInitialHistory,
+  addHistoryItem,
+  clearHistoryFromStorage,
+  clearCourseHistoryFromStorage,
+  calculateCourseStats
+} from '../store/lmsStore';
 
 function shuffleArray(arr) {
   const result = [...arr];
@@ -23,9 +29,11 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
   const [selectedLessonId, setSelectedLessonId] = useState(lessons.find(l => l.courseId === courses[0]?.id)?.id || "");
   const [selected30LessonIds, setSelected30LessonIds] = useState([]);
 
-  // Attempt History State
+  // Attempt History State (Per-course and overall)
   const [history, setHistory] = useState(() => getInitialHistory());
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyFilterCourseId, setHistoryFilterCourseId] = useState(courses[0]?.id || 'ALL');
+  const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
 
   // Active Test State
   const [isTestActive, setIsTestActive] = useState(false);
@@ -356,10 +364,14 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
     setIsSubmitted(true);
     setIsTestActive(false);
 
-    // Save attempt to history
+    // Save attempt to history (Isolated per course)
     try {
       const activeCourse = courses.find(c => c.id === selectedCourseId);
       const activeLesson = lessons.find(l => l.id === selectedLessonId);
+      const targetCourseId = activeSessionMeta?.course?.id || activeCourse?.id || selectedCourseId;
+      const targetCourseCode = activeSessionMeta?.course?.code || activeCourse?.code || '';
+      const targetCourseTitle = activeSessionMeta?.course?.title || activeCourse?.title || 'Đề thi tổng hợp';
+
       const modeLabel = activeSessionMeta
         ? `Bộ đề tùy biến (${activeSessionMeta.lessons?.map(l => 'Bài ' + l.lessonNumber).join(', ')})`
         : selectedMode === 'TEST_15'
@@ -378,7 +390,9 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
           hour: '2-digit',
           minute: '2-digit'
         }),
-        courseTitle: activeSessionMeta?.course?.title || activeCourse?.title || 'Đề thi tổng hợp',
+        courseId: targetCourseId,
+        courseCode: targetCourseCode,
+        courseTitle: targetCourseTitle,
         modeTitle: modeLabel,
         totalQuestions: res.total,
         correctCount: res.correct,
@@ -425,19 +439,11 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
     );
   }
 
-  // Statistics calculations from persistent attempt history
-  const totalAttempts = history.length;
-  const avgScore = totalAttempts > 0
-    ? (history.reduce((sum, h) => sum + (h.score10 || 0), 0) / totalAttempts).toFixed(1)
-    : '0.0';
-  const maxScore = totalAttempts > 0
-    ? Math.max(...history.map(h => h.score10 || 0)).toFixed(1)
-    : '0.0';
-  const totalQuestionsDone = history.reduce((sum, h) => sum + (h.totalQuestions || 0), 0);
-  const totalCorrectDone = history.reduce((sum, h) => sum + (h.correctCount || 0), 0);
-  const overallAccuracy = totalQuestionsDone > 0
-    ? Math.round((totalCorrectDone / totalQuestionsDone) * 100)
-    : 0;
+  // Selected course details
+  const activeCourse = courses.find(c => c.id === selectedCourseId);
+
+  // Statistics calculations isolated for the currently selected course
+  const currentCourseStats = calculateCourseStats(selectedCourseId, history);
 
   return (
     <div style={{ maxWidth: '1400px', margin: '1.5rem auto', padding: '0 1.25rem' }}>
@@ -472,7 +478,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
               </p>
             </div>
 
-            {/* Realtime Statistics Summary Bar (Lượt làm bài, Điểm TB, Điểm cao nhất) */}
+            {/* Realtime Statistics Summary Bar (Lưu & Tính Riêng Biệt Theo Từng Học Phần Đang Chọn) */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
@@ -481,7 +487,10 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
             }}>
               {/* Lượt làm bài card */}
               <div
-                onClick={() => setShowHistoryModal(true)}
+                onClick={() => {
+                  setHistoryFilterCourseId(selectedCourseId);
+                  setShowHistoryModal(true);
+                }}
                 className="lms-card-interactive"
                 style={{
                   padding: '1.25rem 1.4rem',
@@ -510,18 +519,21 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                   <Target size={24} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Lượt làm bài
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Lượt làm bài • {activeCourse?.code || 'Học phần'}
                   </div>
                   <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
-                    {totalAttempts} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>lượt</span>
+                    {currentCourseStats.attempts} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>lượt</span>
                   </div>
                 </div>
               </div>
 
               {/* Điểm trung bình card (Click mở xem chi tiết) */}
               <div
-                onClick={() => setShowHistoryModal(true)}
+                onClick={() => {
+                  setHistoryFilterCourseId(selectedCourseId);
+                  setShowHistoryModal(true);
+                }}
                 className="lms-card-interactive"
                 style={{
                   padding: '1.25rem 1.4rem',
@@ -552,11 +564,11 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                     <TrendingUp size={24} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.78rem', color: '#4f46e5', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       Điểm trung bình
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#1e1b4b', lineHeight: 1.2 }}>
-                      {avgScore} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6366f1' }}>/ 10</span>
+                      {currentCourseStats.avgScore} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6366f1' }}>/ 10</span>
                     </div>
                   </div>
                 </div>
@@ -581,7 +593,10 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
 
               {/* Điểm cao nhất card */}
               <div
-                onClick={() => setShowHistoryModal(true)}
+                onClick={() => {
+                  setHistoryFilterCourseId(selectedCourseId);
+                  setShowHistoryModal(true);
+                }}
                 className="lms-card-interactive"
                 style={{
                   padding: '1.25rem 1.4rem',
@@ -610,11 +625,11 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                   <Award size={24} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Điểm cao nhất
                   </div>
                   <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#065f46', lineHeight: 1.2 }}>
-                    {maxScore} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#059669' }}>/ 10</span>
+                    {currentCourseStats.maxScore} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#059669' }}>/ 10</span>
                   </div>
                 </div>
               </div>
@@ -1983,7 +1998,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                     Lịch Sử Luyện Thi & Điểm Số
                   </h3>
                   <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0, fontWeight: 500 }}>
-                    Theo dõi tiến độ ôn luyện và xem lại chi tiết tất cả các bài thi đã làm
+                    Theo dõi tiến độ, điểm trung bình và điểm cao nhất được tính riêng cho từng học phần
                   </p>
                 </div>
               </div>
@@ -1991,12 +2006,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {history.length > 0 && (
                   <button
-                    onClick={() => {
-                      if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử các lần làm bài không?')) {
-                        const cleared = clearHistoryFromStorage();
-                        setHistory(cleared);
-                      }
-                    }}
+                    onClick={() => setShowClearHistoryConfirm(true)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -2012,7 +2022,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                     }}
                   >
                     <Trash2 size={14} />
-                    <span>Xóa Lịch Sử</span>
+                    <span>{historyFilterCourseId === 'ALL' ? 'Xóa Tất Cả' : 'Xóa Lịch Sử Môn Này'}</span>
                   </button>
                 )}
                 <button
@@ -2036,177 +2046,295 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
               </div>
             </div>
 
-            {/* Modal Mini Stats Overview */}
+            {/* Course Filter Selector / Tabs in Modal */}
             <div style={{
-              padding: '1rem 1.75rem',
-              backgroundColor: '#f1f5f9',
+              padding: '0.875rem 1.75rem',
+              backgroundColor: '#ffffff',
               borderBottom: '1px solid #e2e8f0',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
               gap: '0.75rem'
             }}>
-              <div style={{ backgroundColor: '#ffffff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Tổng lượt thi</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{totalAttempts} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>lần</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setHistoryFilterCourseId(selectedCourseId)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    border: '1.5px solid',
+                    borderColor: historyFilterCourseId === selectedCourseId ? '#4f46e5' : '#e2e8f0',
+                    backgroundColor: historyFilterCourseId === selectedCourseId ? '#eef2ff' : '#ffffff',
+                    color: historyFilterCourseId === selectedCourseId ? '#4f46e5' : '#64748b',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <BookOpen size={14} />
+                  <span>{activeCourse ? `${activeCourse.code} (Học phần này)` : 'Học phần đang chọn'}</span>
+                  <span style={{
+                    backgroundColor: historyFilterCourseId === selectedCourseId ? '#4f46e5' : '#e2e8f0',
+                    color: historyFilterCourseId === selectedCourseId ? '#ffffff' : '#64748b',
+                    padding: '1px 7px',
+                    borderRadius: '9999px',
+                    fontSize: '0.7rem',
+                    fontWeight: 800
+                  }}>
+                    {history.filter(h => h.courseId === selectedCourseId).length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setHistoryFilterCourseId('ALL')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '9999px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    border: '1.5px solid',
+                    borderColor: historyFilterCourseId === 'ALL' ? '#4f46e5' : '#e2e8f0',
+                    backgroundColor: historyFilterCourseId === 'ALL' ? '#eef2ff' : '#ffffff',
+                    color: historyFilterCourseId === 'ALL' ? '#4f46e5' : '#64748b',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <Layers size={14} />
+                  <span>Tất Cả Học Phần</span>
+                  <span style={{
+                    backgroundColor: historyFilterCourseId === 'ALL' ? '#4f46e5' : '#e2e8f0',
+                    color: historyFilterCourseId === 'ALL' ? '#ffffff' : '#64748b',
+                    padding: '1px 7px',
+                    borderRadius: '9999px',
+                    fontSize: '0.7rem',
+                    fontWeight: 800
+                  }}>
+                    {history.length}
+                  </span>
+                </button>
               </div>
 
-              <div style={{ backgroundColor: '#ffffff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #c7d2fe' }}>
-                <div style={{ fontSize: '0.72rem', color: '#4f46e5', fontWeight: 800, textTransform: 'uppercase' }}>Điểm TB</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#4f46e5' }}>{avgScore} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>/ 10</span></div>
-              </div>
-
-              <div style={{ backgroundColor: '#ffffff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #a7f3d0' }}>
-                <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>Điểm Cao Nhất</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669' }}>{maxScore} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>/ 10</span></div>
-              </div>
-
-              <div style={{ backgroundColor: '#ffffff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Tỷ Lệ Đúng</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{overallAccuracy}%</div>
-              </div>
-            </div>
-
-            {/* Modal Body: History List */}
-            <div style={{ padding: '1.5rem 1.75rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-              {history.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: '#94a3b8' }}>
-                  <History size={48} style={{ marginBottom: '1rem', opacity: 0.35, color: '#4f46e5' }} />
-                  <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.35rem' }}>
-                    Chưa có lịch sử làm bài nào
-                  </h4>
-                  <p style={{ fontSize: '0.875rem', color: '#64748b', maxWidth: '420px', margin: '0 auto' }}>
-                    Sau khi hoàn thành bất kỳ bài thi trắc nghiệm nào, kết quả và điểm số chi tiết sẽ được tự động lưu lại tại đây để bạn tiện theo dõi!
-                  </p>
+              {courses.length > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Filter size={14} color="#64748b" />
+                  <select
+                    value={historyFilterCourseId}
+                    onChange={(e) => setHistoryFilterCourseId(e.target.value)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      outline: 'none',
+                      backgroundColor: '#f8fafc',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="ALL">Xem tất cả ({history.length} bài)</option>
+                    {courses.map(c => {
+                      const cCount = history.filter(h => h.courseId === c.id).length;
+                      return (
+                        <option key={c.id} value={c.id}>
+                          {c.code} - {c.title} ({cCount} bài)
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
-              ) : (
-                history.map((item, idx) => {
-                  const isExcellent = item.score10 >= 8.5;
-                  const isGood = item.score10 >= 7.0 && item.score10 < 8.5;
-                  const isAverage = item.score10 >= 5.0 && item.score10 < 7.0;
-
-                  const badgeColor = isExcellent
-                    ? { bg: '#ecfdf5', text: '#059669', border: '#a7f3d0', label: 'Xuất sắc' }
-                    : isGood
-                    ? { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', label: 'Khá - Giỏi' }
-                    : isAverage
-                    ? { bg: '#fffbeb', text: '#d97706', border: '#fde68a', label: 'Đạt' }
-                    : { bg: '#fef2f2', text: '#e11d48', border: '#fecdd3', label: 'Cần ôn lại' };
-
-                  const m = Math.floor(item.timeSpentSeconds / 60);
-                  const s = item.timeSpentSeconds % 60;
-                  const timeText = `${m > 0 ? `${m}p ` : ''}${s}s`;
-
-                  return (
-                    <div
-                      key={item.id || idx}
-                      style={{
-                        padding: '1.1rem 1.25rem',
-                        borderRadius: '16px',
-                        border: '1.5px solid #e2e8f0',
-                        backgroundColor: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '1rem',
-                        transition: 'all 0.2s ease',
-                        boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)'
-                      }}
-                    >
-                      {/* Left: Attempt Info */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-                        <div style={{
-                          width: '38px',
-                          height: '38px',
-                          borderRadius: '10px',
-                          backgroundColor: '#f1f5f9',
-                          color: '#475569',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          fontSize: '0.85rem'
-                        }}>
-                          #{history.length - idx}
-                        </div>
-
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.2rem' }}>
-                            <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>
-                              {item.courseTitle}
-                            </span>
-                            <span style={{
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              backgroundColor: '#eef2ff',
-                              color: '#4f46e5',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              border: '1px solid #c7d2fe'
-                            }}>
-                              {item.modeTitle}
-                            </span>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <Calendar size={13} /> {item.dateStr}
-                            </span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <Clock size={13} /> {timeText}
-                            </span>
-                            <span>
-                              Đúng: <strong style={{ color: '#059669' }}>{item.correctCount}</strong>/{item.totalQuestions} câu
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right: Score Badge & Review Action */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-                        <div style={{
-                          padding: '6px 14px',
-                          borderRadius: '12px',
-                          backgroundColor: badgeColor.bg,
-                          border: `1.5px solid ${badgeColor.border}`,
-                          textAlign: 'right'
-                        }}>
-                          <div style={{ fontSize: '1.15rem', fontWeight: 900, color: badgeColor.text, lineHeight: 1.1 }}>
-                            {item.score10} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>/ 10</span>
-                          </div>
-                          <div style={{ fontSize: '0.68rem', fontWeight: 800, color: badgeColor.text }}>
-                            {badgeColor.label} ({item.percentage}%)
-                          </div>
-                        </div>
-
-                        {item.reviewResult && (
-                          <button
-                            onClick={() => {
-                              setTestResult(item.reviewResult);
-                              setIsSubmitted(true);
-                              setShowHistoryModal(false);
-                            }}
-                            className="btn-secondary"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.35rem',
-                              padding: '8px 14px',
-                              fontSize: '0.82rem',
-                              fontWeight: 700,
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            <Eye size={15} />
-                            <span>Xem Lại Đề</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
               )}
             </div>
+
+            {/* Modal Mini Stats Overview (Isolated calculation based on filter) */}
+            {(() => {
+              const modalStats = calculateCourseStats(historyFilterCourseId === 'ALL' ? null : historyFilterCourseId, history);
+              const displayedHistory = history.filter(item => historyFilterCourseId === 'ALL' || item.courseId === historyFilterCourseId);
+
+              return (
+                <>
+                  <div style={{
+                    padding: '1rem 1.75rem',
+                    backgroundColor: '#f1f5f9',
+                    borderBottom: '1px solid #e2e8f0',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                    gap: '0.75rem'
+                  }}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Lượt thi học phần</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{modalStats.attempts} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>lần</span></div>
+                    </div>
+
+                    <div style={{ backgroundColor: '#ffffff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #c7d2fe' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#4f46e5', fontWeight: 800, textTransform: 'uppercase' }}>Điểm TB Học Phần</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#4f46e5' }}>{modalStats.avgScore} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>/ 10</span></div>
+                    </div>
+
+                    <div style={{ backgroundColor: '#ffffff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #a7f3d0' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase' }}>Điểm Cao Nhất</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669' }}>{modalStats.maxScore} <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>/ 10</span></div>
+                    </div>
+
+                    <div style={{ backgroundColor: '#ffffff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Tỷ Lệ Đúng</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>{modalStats.accuracy}%</div>
+                    </div>
+                  </div>
+
+                  {/* Modal Body: Filtered History List */}
+                  <div style={{ padding: '1.5rem 1.75rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                    {displayedHistory.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: '#94a3b8' }}>
+                        <History size={48} style={{ marginBottom: '1rem', opacity: 0.35, color: '#4f46e5' }} />
+                        <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.35rem' }}>
+                          Chưa có lịch sử làm bài cho học phần này
+                        </h4>
+                        <p style={{ fontSize: '0.875rem', color: '#64748b', maxWidth: '420px', margin: '0 auto' }}>
+                          Sau khi hoàn thành bài thi trắc nghiệm của học phần này, điểm số và kết quả sẽ tự động lưu riêng biệt tại đây!
+                        </p>
+                      </div>
+                    ) : (
+                      displayedHistory.map((item, idx) => {
+                        const isExcellent = item.score10 >= 8.5;
+                        const isGood = item.score10 >= 7.0 && item.score10 < 8.5;
+                        const isAverage = item.score10 >= 5.0 && item.score10 < 7.0;
+
+                        const badgeColor = isExcellent
+                          ? { bg: '#ecfdf5', text: '#059669', border: '#a7f3d0', label: 'Xuất sắc' }
+                          : isGood
+                          ? { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', label: 'Khá - Giỏi' }
+                          : isAverage
+                          ? { bg: '#fffbeb', text: '#d97706', border: '#fde68a', label: 'Đạt' }
+                          : { bg: '#fef2f2', text: '#e11d48', border: '#fecdd3', label: 'Cần ôn lại' };
+
+                        const m = Math.floor((item.timeSpentSeconds || 0) / 60);
+                        const s = (item.timeSpentSeconds || 0) % 60;
+                        const timeText = `${m > 0 ? `${m}p ` : ''}${s}s`;
+
+                        return (
+                          <div
+                            key={item.id || idx}
+                            style={{
+                              padding: '1.1rem 1.25rem',
+                              borderRadius: '16px',
+                              border: '1.5px solid #e2e8f0',
+                              backgroundColor: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: '1rem',
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.02)'
+                            }}
+                          >
+                            {/* Left: Attempt Info */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                              <div style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '10px',
+                                backgroundColor: '#f1f5f9',
+                                color: '#475569',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 800,
+                                fontSize: '0.85rem'
+                              }}>
+                                #{displayedHistory.length - idx}
+                              </div>
+
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.2rem' }}>
+                                  <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>
+                                    {item.courseTitle}
+                                  </span>
+                                  <span style={{
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    backgroundColor: '#eef2ff',
+                                    color: '#4f46e5',
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #c7d2fe'
+                                  }}>
+                                    {item.modeTitle}
+                                  </span>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <Calendar size={13} /> {item.dateStr}
+                                  </span>
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <Clock size={13} /> {timeText}
+                                  </span>
+                                  <span>
+                                    Đúng: <strong style={{ color: '#059669' }}>{item.correctCount}</strong>/{item.totalQuestions} câu
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right: Score Badge & Review Action */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                              <div style={{
+                                padding: '6px 14px',
+                                borderRadius: '12px',
+                                backgroundColor: badgeColor.bg,
+                                border: `1.5px solid ${badgeColor.border}`,
+                                textAlign: 'right'
+                              }}>
+                                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: badgeColor.text, lineHeight: 1.1 }}>
+                                  {item.score10} <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>/ 10</span>
+                                </div>
+                                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: badgeColor.text }}>
+                                  {badgeColor.label} ({item.percentage}%)
+                                </div>
+                              </div>
+
+                              {item.reviewResult && (
+                                <button
+                                  onClick={() => {
+                                    setTestResult(item.reviewResult);
+                                    setIsSubmitted(true);
+                                    setShowHistoryModal(false);
+                                  }}
+                                  className="btn-secondary"
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    padding: '8px 14px',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 700,
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  <Eye size={15} />
+                                  <span>Xem Lại Đề</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Modal Footer */}
             <div style={{
@@ -2227,6 +2355,101 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
           </div>
         </div>
       )}
+
+      {/* ── Modal Xác Nhận Xóa Lịch Sử (In-app Confirmation Dialog) ───── */}
+      {showClearHistoryConfirm && (() => {
+        const targetCourse = courses.find(c => c.id === historyFilterCourseId);
+        const isSingleCourse = historyFilterCourseId !== 'ALL' && targetCourse;
+
+        return (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 300,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }} className="animate-fade-in">
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              padding: '2rem',
+              maxWidth: '440px',
+              width: '100%',
+              boxShadow: 'var(--shadow-xl)',
+              textAlign: 'center',
+              border: '1px solid #fecdd3'
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: '#fff1f2',
+                color: '#e11d48',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.25rem auto',
+                border: '2px solid #fecdd3'
+              }}>
+                <Trash2 size={26} />
+              </div>
+
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
+                {isSingleCourse
+                  ? `Xóa Lịch Sử Môn ${targetCourse.code}?`
+                  : 'Xác Nhận Xóa Toàn Bộ Lịch Sử?'}
+              </h3>
+
+              <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.55 }}>
+                {isSingleCourse
+                  ? `Toàn bộ điểm số các lần thi của học phần "${targetCourse.title}" sẽ bị xóa. Lịch sử của các môn học khác vẫn được giữ nguyên an toàn.`
+                  : 'Toàn bộ điểm số, phân tích và đề thi các lần bạn đã làm trên tất cả các học phần sẽ bị xóa vĩnh viễn.'}
+              </p>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+                <button
+                  onClick={() => setShowClearHistoryConfirm(false)}
+                  className="btn-secondary"
+                  style={{ flex: 1, padding: '0.75rem 1rem' }}
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  onClick={() => {
+                    if (isSingleCourse) {
+                      const cleared = clearCourseHistoryFromStorage(historyFilterCourseId);
+                      setHistory(cleared);
+                    } else {
+                      const cleared = clearHistoryFromStorage();
+                      setHistory(cleared);
+                    }
+                    setShowClearHistoryConfirm(false);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(225, 29, 72, 0.25)'
+                  }}
+                >
+                  Xác Nhận Xóa
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -49,6 +49,44 @@ export function getInitialHistory() {
   return [];
 }
 
+export function getCourseHistory(courseId) {
+  const allHistory = getInitialHistory();
+  if (!courseId) return allHistory;
+  return allHistory.filter(item => item.courseId === courseId);
+}
+
+export function calculateCourseStats(courseId, historyList = null) {
+  const allHistory = historyList || getInitialHistory();
+  const filtered = courseId ? allHistory.filter(item => item.courseId === courseId) : allHistory;
+  const count = filtered.length;
+
+  if (count === 0) {
+    return {
+      attempts: 0,
+      avgScore: '0.0',
+      maxScore: '0.0',
+      totalQuestions: 0,
+      totalCorrect: 0,
+      accuracy: 0
+    };
+  }
+
+  const sumScore = filtered.reduce((acc, cur) => acc + (parseFloat(cur.score10) || 0), 0);
+  const maxScore = Math.max(...filtered.map(cur => parseFloat(cur.score10) || 0));
+  const totalQuestions = filtered.reduce((acc, cur) => acc + (parseInt(cur.totalQuestions, 10) || 0), 0);
+  const totalCorrect = filtered.reduce((acc, cur) => acc + (parseInt(cur.correctCount, 10) || 0), 0);
+  const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+  return {
+    attempts: count,
+    avgScore: (sumScore / count).toFixed(1),
+    maxScore: maxScore.toFixed(1),
+    totalQuestions,
+    totalCorrect,
+    accuracy
+  };
+}
+
 export function saveCoursesToStorage(courses) {
   localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
 }
@@ -72,6 +110,13 @@ export function addHistoryItem(item) {
   return updated;
 }
 
+export function clearCourseHistoryFromStorage(courseId) {
+  const current = getInitialHistory();
+  const updated = current.filter(item => item.courseId !== courseId);
+  saveHistoryToStorage(updated);
+  return updated;
+}
+
 export function clearHistoryFromStorage() {
   localStorage.removeItem(STORAGE_KEYS.HISTORY);
   return [];
@@ -83,3 +128,4 @@ export function clearAllStorageData() {
   localStorage.removeItem(STORAGE_KEYS.QUESTIONS);
   localStorage.removeItem(STORAGE_KEYS.HISTORY);
 }
+
