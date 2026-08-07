@@ -41,6 +41,14 @@ export function getInitialQuestions() {
   return initialQuestions || [];
 }
 
+export function getInitialHistory() {
+  const saved = localStorage.getItem(STORAGE_KEYS.HISTORY);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) {}
+  }
+  return [];
+}
+
 export function saveCoursesToStorage(courses) {
   localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(courses));
 }
@@ -51,6 +59,22 @@ export function saveLessonsToStorage(lessons) {
 
 export function saveQuestionsToStorage(questions) {
   localStorage.setItem(STORAGE_KEYS.QUESTIONS, JSON.stringify(questions));
+}
+
+export function saveHistoryToStorage(history) {
+  localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+}
+
+export function addHistoryItem(item) {
+  const current = getInitialHistory();
+  const updated = [item, ...current];
+  saveHistoryToStorage(updated);
+  return updated;
+}
+
+export function clearHistoryFromStorage() {
+  localStorage.removeItem(STORAGE_KEYS.HISTORY);
+  return [];
 }
 
 export function clearAllStorageData() {

@@ -1,11 +1,10 @@
 import React from 'react';
-import { BookOpen, FileCode, Layers, Database, User, Sparkles, Settings, GraduationCap } from 'lucide-react';
+import { FileCode, Sparkles, Settings } from 'lucide-react';
 
 const NAV_TABS = [
-  { id: 'quiz',         icon: <Sparkles size={16} />,     label: 'Ôn Luyện & Thi',     badge: 'Thi thử' },
-  { id: 'manage',       icon: <Settings size={16} />,     label: 'Quản Lý Nội Dung',   badge: null },
-  { id: 'admin',        icon: <FileCode size={16} />,     label: 'Upload & Bóc Tách', badge: 'Word docx' },
-  { id: 'architecture', icon: <Database size={16} />,     label: 'Kiến Trúc & ERD',   badge: null },
+  { id: 'quiz',   icon: <Sparkles size={17} />, label: 'Ôn Luyện & Thi',   badge: 'Thi thử' },
+  { id: 'manage', icon: <Settings size={17} />, label: 'Quản Lý Nội Dung', badge: null },
+  { id: 'admin',  icon: <FileCode size={17} />, label: 'Upload & Bóc Tách', badge: 'Word docx' },
 ];
 
 export default function Header({ activeTab, setActiveTab }) {
@@ -14,99 +13,89 @@ export default function Header({ activeTab, setActiveTab }) {
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      backgroundColor: 'rgba(255, 255, 255, 0.88)',
+      backgroundColor: 'rgba(255, 255, 255, 0.92)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
       borderBottom: '1px solid rgba(226, 232, 240, 0.8)',
-      boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.04)'
+      boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.03)'
     }}>
       <div style={{
         maxWidth: '1440px',
         margin: '0 auto',
-        padding: '0.75rem 1.5rem',
+        padding: '0.85rem 1.5rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '1rem'
       }}>
-        {/* Brand Logo & Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+        {/* Left: Brand Logo & Name: NgHoc */}
+        <div
+          onClick={() => setActiveTab('quiz')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            cursor: 'pointer',
+            userSelect: 'none',
+            minWidth: '180px'
+          }}
+        >
           <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
+            width: '38px',
+            height: '38px',
+            borderRadius: '11px',
             background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
             color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 6px 16px -2px rgba(79, 70, 229, 0.4)',
-            transition: 'transform 0.2s ease',
-            cursor: 'pointer'
+            boxShadow: '0 4px 14px -2px rgba(79, 70, 229, 0.4)',
+            fontWeight: 900,
+            fontSize: '1.15rem',
+            letterSpacing: '-0.02em',
+            transition: 'transform 0.2s ease'
           }}>
-            <GraduationCap size={24} />
+            N
           </div>
 
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{
-                fontSize: '1.15rem',
-                fontWeight: 900,
-                background: 'linear-gradient(135deg, #0f172a 0%, #4338ca 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '-0.025em',
-                lineHeight: 1.2
-              }}>
-                Antigravity LMS
-              </span>
-              <span style={{
-                fontSize: '0.65rem',
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
-                color: '#4f46e5',
-                padding: '1px 7px',
-                borderRadius: '9999px',
-                border: '1px solid #c7d2fe',
-                letterSpacing: '0.02em'
-              }}>
-                PRO
-              </span>
-            </div>
-            <p className="desktop-user-profile" style={{ fontSize: '0.75rem', color: '#64748b', margin: 0, fontWeight: 500 }}>
-              Hệ thống ôn luyện thông minh & Ngân hàng đề thi
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{
+              fontSize: '1.3rem',
+              fontWeight: 900,
+              background: 'linear-gradient(135deg, #0f172a 0%, #4338ca 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.03em',
+              lineHeight: 1.2
+            }}>
+              NgHoc
+            </span>
+            <span style={{
+              fontSize: '0.68rem',
+              fontWeight: 800,
+              background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+              color: '#4f46e5',
+              padding: '2px 8px',
+              borderRadius: '9999px',
+              border: '1px solid #c7d2fe',
+              letterSpacing: '0.03em'
+            }}>
+              PRO
+            </span>
           </div>
         </div>
 
-        {/* Mobile quick avatar */}
-        <div style={{ display: 'none' }} className="mobile-user-avatar">
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '0.75rem',
-            fontWeight: 800
-          }}>
-            AN
-          </div>
-        </div>
-
-        {/* Navigation Tabs (Desktop) */}
+        {/* Center: Navigation Tabs Segmented Control (Desktop) */}
         <nav className="desktop-nav-tabs" style={{
           display: 'flex',
-          gap: '4px',
+          gap: '6px',
           backgroundColor: '#f1f5f9',
           padding: '5px',
           borderRadius: '14px',
           border: '1px solid #e2e8f0',
-          boxShadow: 'inset 0 1px 2px rgba(15, 23, 42, 0.04)'
+          boxShadow: 'inset 0 1px 2px rgba(15, 23, 42, 0.04)',
+          margin: '0 auto'
         }}>
           {NAV_TABS.map(tab => {
             const isActive = activeTab === tab.id;
@@ -117,11 +106,11 @@ export default function Header({ activeTab, setActiveTab }) {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.45rem',
-                  padding: '8px 15px',
+                  gap: '0.5rem',
+                  padding: '8px 18px',
                   borderRadius: '10px',
                   border: 'none',
-                  fontSize: '0.85rem',
+                  fontSize: '0.875rem',
                   fontWeight: isActive ? 700 : 600,
                   cursor: 'pointer',
                   transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -137,11 +126,11 @@ export default function Header({ activeTab, setActiveTab }) {
                 <span>{tab.label}</span>
                 {tab.badge && (
                   <span style={{
-                    fontSize: '0.65rem',
+                    fontSize: '0.68rem',
                     fontWeight: 700,
                     backgroundColor: isActive ? '#eef2ff' : '#e2e8f0',
                     color: isActive ? '#4f46e5' : '#64748b',
-                    padding: '1px 6px',
+                    padding: '2px 7px',
                     borderRadius: '9999px',
                     marginLeft: '2px'
                   }}>
@@ -153,49 +142,28 @@ export default function Header({ activeTab, setActiveTab }) {
           })}
         </nav>
 
-        {/* User Profile Card (Desktop) */}
-        <div className="desktop-user-profile" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.625rem',
-          padding: '6px 14px 6px 8px',
-          backgroundColor: '#ffffff',
-          border: '1.5px solid #e2e8f0',
-          borderRadius: '9999px',
-          boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)'
-        }}>
+        {/* Right: Balanced Spacer / System Status */}
+        <div className="desktop-user-profile" style={{ minWidth: '180px', display: 'flex', justifyContent: 'flex-end' }}>
           <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-            color: '#4f46e5',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: '0.85rem',
-            position: 'relative'
+            gap: '0.45rem',
+            padding: '5px 12px',
+            borderRadius: '9999px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            color: '#64748b'
           }}>
-            <User size={16} />
             <span style={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              width: '9px',
-              height: '9px',
-              backgroundColor: '#10b981',
+              width: '7px',
+              height: '7px',
               borderRadius: '50%',
-              border: '2px solid #ffffff'
-            }} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
-              Nguyễn Văn An
-            </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600 }}>
-              MSSV: 20240192 • Sinh viên
-            </div>
+              backgroundColor: '#10b981',
+              boxShadow: '0 0 0 2px #d1fae5'
+            }}></span>
+            <span>Hệ Thống Hoạt Động</span>
           </div>
         </div>
       </div>
@@ -213,7 +181,7 @@ export default function Header({ activeTab, setActiveTab }) {
               <div className="mobile-nav-icon">
                 {tab.icon}
               </div>
-              <span>{tab.id === 'quiz' ? 'Luyện Thi' : tab.id === 'manage' ? 'Quản Lý' : tab.id === 'admin' ? 'Upload' : 'Kiến Trúc'}</span>
+              <span>{tab.id === 'quiz' ? 'Luyện Thi' : tab.id === 'manage' ? 'Quản Lý' : 'Upload'}</span>
             </button>
           );
         })}

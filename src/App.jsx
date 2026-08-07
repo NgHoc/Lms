@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import QuizSystem from './components/QuizSystem';
 import AdminParser from './components/AdminParser';
-import ArchitectureViewer from './components/ArchitectureViewer';
 import CourseManager from './components/CourseManager';
 import {
   getInitialCourses,
@@ -65,29 +64,110 @@ export default function App() {
             setQuestions={setQuestions}
           />
         )}
-
-        {/* ── Tab: Kiến Trúc & ERD ─────────────────────────────────────────── */}
-        {activeTab === 'architecture' && <ArchitectureViewer />}
       </main>
 
-      {/* Modern Footer */}
+      {/* Modern Premium Footer */}
       <footer style={{
         backgroundColor: '#ffffff',
-        borderTop: '1px solid #e2e8f0',
+        borderTop: '1px solid rgba(226, 232, 240, 0.8)',
         padding: '1.25rem 1.5rem',
         color: '#64748b',
-        fontSize: '0.85rem'
+        fontSize: '0.875rem',
+        marginTop: 'auto'
       }}>
-        <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontWeight: 800, color: '#0f172a' }}>Antigravity LMS PRO</span>
-            <span>•</span>
-            <span>Nền tảng thi trắc nghiệm & ôn tập thông minh</span>
+        <div style={{
+          maxWidth: '1440px',
+          margin: '0 auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1.25rem'
+        }}>
+          {/* Brand Info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <span style={{
+                width: '26px',
+                height: '26px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                color: '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '0.75rem'
+              }}>
+                N
+              </span>
+              <span style={{
+                fontWeight: 900,
+                fontSize: '1rem',
+                background: 'linear-gradient(135deg, #0f172a 0%, #4338ca 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '-0.02em'
+              }}>
+                NgHoc
+              </span>
+            </div>
+            <span style={{ color: '#cbd5e1' }}>•</span>
+            <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 500 }}>
+              Nền tảng thi trắc nghiệm & ôn tập thông minh
+            </span>
           </div>
-          <div style={{ display: 'flex', gap: '1.25rem', fontWeight: 700, color: '#4f46e5' }}>
-            <span style={{ backgroundColor: '#eef2ff', padding: '4px 10px', borderRadius: '8px', border: '1px solid #c7d2fe' }}>📚 {courses.length} Học phần</span>
-            <span style={{ backgroundColor: '#f3e8ff', padding: '4px 10px', borderRadius: '8px', border: '1px solid #ddd6fe', color: '#7c3aed' }}>📖 {lessons.length} Bài học</span>
-            <span style={{ backgroundColor: '#ecfdf5', padding: '4px 10px', borderRadius: '8px', border: '1px solid #a7f3d0', color: '#059669' }}>❓ {questions.length} Câu hỏi</span>
+
+          {/* Realtime Stats Pills */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', fontWeight: 700, fontSize: '0.8rem' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              backgroundColor: '#eef2ff',
+              color: '#4f46e5',
+              padding: '6px 14px',
+              borderRadius: '9999px',
+              border: '1px solid #c7d2fe',
+              boxShadow: '0 1px 3px rgba(79, 70, 229, 0.08)'
+            }}>
+              <span>📚</span>
+              <span>{courses.length} Học phần</span>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              backgroundColor: '#f3e8ff',
+              color: '#7c3aed',
+              padding: '6px 14px',
+              borderRadius: '9999px',
+              border: '1px solid #ddd6fe',
+              boxShadow: '0 1px 3px rgba(124, 58, 237, 0.08)'
+            }}>
+              <span>📖</span>
+              <span>{lessons.length} Bài học</span>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              backgroundColor: '#ecfdf5',
+              color: '#059669',
+              padding: '6px 14px',
+              borderRadius: '9999px',
+              border: '1px solid #a7f3d0',
+              boxShadow: '0 1px 3px rgba(5, 150, 105, 0.08)'
+            }}>
+              <span>❓</span>
+              <span>{questions.length} Câu hỏi</span>
+            </div>
           </div>
         </div>
       </footer>

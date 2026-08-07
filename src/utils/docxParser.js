@@ -68,7 +68,7 @@ export async function parseDocxFile(file) {
         !looksLikeOptionStart(nodes, i)
       ) {
         // If this paragraph is a semicolon-separated keyword list (drag bank), break to capture it
-        if (nodes[i].text.includes(";") && !nodes[i].text.includes(":") && nodes[i].text.split(";").length >= 2) {
+        if (nodes[i].text.includes(";") && !nodes[i].text.includes(":") && nodes[i].text.split(";").filter(Boolean).length >= 2) {
           break;
         }
         questionContent += "\n" + nodes[i].text;
@@ -87,9 +87,23 @@ export async function parseDocxFile(file) {
       ) {
         explicitDragItems = nodes[i].text
           .split(";")
-          .map(s => s.trim())
+          .map(s => s.trim().replace(/^[\-\•\*\d+\.]\s*/, ''))
           .filter(Boolean);
         i++;
+      }
+
+      // Check if questionContent itself has a semicolon-delimited drag items line
+      if (explicitDragItems.length === 0 && questionContent.includes(";")) {
+        const lines = questionContent.split("\n");
+        const dragLineIdx = lines.findIndex(l => l.includes(";") && l.split(";").map(s => s.trim()).filter(Boolean).length >= 2);
+        if (dragLineIdx !== -1) {
+          const rawItems = lines[dragLineIdx].split(";").map(s => s.trim().replace(/^[\-\•\*\d+\.]\s*/, '')).filter(Boolean);
+          if (rawItems.length >= 2) {
+            explicitDragItems = rawItems;
+            lines.splice(dragLineIdx, 1);
+            questionContent = lines.join("\n").trim();
+          }
+        }
       }
 
       // ── A/B/C/D type ─────────────────────────────────────────────────────
@@ -410,7 +424,17 @@ function buildDragDropFromTable(rawText, questionContent, tableData, explicitDra
       answer = leftCell.redTexts.join(" ").trim();
     }
 
-    // Fallback: match from explicitDragItems by index if available
+    // Match case-insensitively with explicitDragItems if provided
+    if (answer && explicitDragItems && explicitDragItems.length > 0) {
+      const matchInExplicit = explicitDragItems.find(
+        it => it.trim().toLowerCase() === answer.trim().toLowerCase()
+      );
+      if (matchInExplicit) {
+        answer = matchInExplicit;
+      }
+    }
+
+    // Fallback: match from explicitDragItems by index if right cell was empty
     if (!answer && explicitDragItems && explicitDragItems[rIdx]) {
       answer = explicitDragItems[rIdx];
     }
@@ -434,10 +458,10 @@ function buildDragDropFromTable(rawText, questionContent, tableData, explicitDra
     }
   });
 
-  // Build complete pool of drag items
-  let allDragItems = [...explicitDragItems];
+  // Build complete pool of drag items (preserves distractors from explicitDragItems)
+  let allDragItems = explicitDragItems && explicitDragItems.length > 0 ? [...explicitDragItems] : [];
   collectedAnswers.forEach(ans => {
-    if (ans && !allDragItems.includes(ans)) {
+    if (ans && !allDragItems.some(it => it.trim().toLowerCase() === ans.trim().toLowerCase())) {
       allDragItems.push(ans);
     }
   });
