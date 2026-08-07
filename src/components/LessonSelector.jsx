@@ -51,8 +51,8 @@ export default function LessonSelector({ courses, lessons, questions, onStart, o
   };
 
   return (
-    <div style={{ maxWidth: '960px', margin: '1.5rem auto', padding: '0 1rem' }} className="animate-fade-in">
-      <div className="lms-card" style={{ padding: '2.5rem', boxShadow: 'var(--shadow-xl)' }}>
+    <div style={{ maxWidth: '960px', margin: '1rem auto', padding: '0 0.5rem' }} className="animate-fade-in">
+      <div className="lms-card" style={{ padding: '2rem 1.5rem', boxShadow: 'var(--shadow-xl)' }}>
         
         {/* Header Title */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
@@ -408,14 +408,15 @@ export default function LessonSelector({ courses, lessons, questions, onStart, o
         {/* Action buttons */}
         <div style={{
           display: 'flex',
-          gap: '0.875rem',
+          gap: '0.75rem',
           justifyContent: 'flex-end',
           alignItems: 'center',
           borderTop: '1px solid #f1f5f9',
-          paddingTop: '1.75rem'
+          paddingTop: '1.5rem',
+          flexWrap: 'wrap'
         }}>
           {onBack && (
-            <button onClick={onBack} className="btn-secondary">
+            <button onClick={onBack} className="btn-secondary" style={{ flex: '1 1 120px', justifyContent: 'center' }}>
               <ArrowLeft size={16} /> Quay lại
             </button>
           )}
@@ -426,8 +427,10 @@ export default function LessonSelector({ courses, lessons, questions, onStart, o
             style={{
               opacity: canStart ? 1 : 0.45,
               cursor: canStart ? 'pointer' : 'not-allowed',
-              padding: '0.85rem 2.25rem',
-              fontSize: '1rem'
+              padding: '0.85rem 1.75rem',
+              fontSize: '1rem',
+              flex: '2 1 200px',
+              justifyContent: 'center'
             }}
           >
             <Play size={18} /> Bắt Đầu Ôn Tập ({actualCount} Câu)

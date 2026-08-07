@@ -598,6 +598,10 @@ body {
     display: none !important;
   }
 
+  .mobile-user-avatar {
+    display: flex !important;
+  }
+
   .mobile-brand-bar {
     padding: 0.5rem 1rem !important;
   }
@@ -728,15 +732,142 @@ body {
     height: 34px;
     font-size: 0.9rem;
   }
+  /* Page Container Responsive */
+  .page-content-container {
+    padding: 1rem 0.75rem !important;
+  }
+
+  /* Manager Stats Responsive Grid */
+  .manager-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  .manager-stat-card {
+    padding: 0.75rem 0.5rem !important;
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: 0.35rem !important;
+    border-radius: 12px !important;
+  }
+
+  .manager-stat-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    margin: 0 auto;
+  }
+
+  .manager-stat-value {
+    font-size: 1.3rem !important;
+  }
+
+  .manager-stat-label {
+    font-size: 0.68rem !important;
+    line-height: 1.2;
+  }
+
+  /* Course Card Mobile Header */
+  .course-card-header {
+    padding: 1rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .course-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    width: 100%;
+  }
+
+  .course-info-block {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  .course-actions-group {
+    display: flex;
+    width: 100%;
+    gap: 0.4rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed #e2e8f0;
+    justify-content: flex-end;
+  }
+
+  .course-actions-group button {
+    flex: 1;
+    justify-content: center;
+    padding: 0.5rem 0.6rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Lesson Row Mobile Header */
+  .lesson-card-header {
+    padding: 0.75rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.6rem !important;
+  }
+
+  .lesson-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .lesson-actions-group {
+    display: flex;
+    width: 100%;
+    gap: 0.35rem;
+    padding-top: 0.4rem;
+    border-top: 1px dashed #e2e8f0;
+    justify-content: flex-end;
+  }
+
+  .lesson-actions-group button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Question Item Responsive */
+  .question-item-card {
+    flex-direction: column !important;
+    gap: 0.6rem !important;
+    padding: 0.75rem !important;
+  }
+
+  .question-item-actions {
+    width: 100%;
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 0.4rem;
+  }
+
+  /* Modal Responsive Container */
+  .modal-responsive-card {
+    width: 95% !important;
+    max-width: 540px !important;
+    max-height: 90vh !important;
+    padding: 1.25rem !important;
+    border-radius: 16px !important;
+  }
 }
 
 @media (max-width: 480px) {
-  h1, .h1 { font-size: 1.5rem !important; }
-  h2, .h2 { font-size: 1.35rem !important; }
-  h3, .h3 { font-size: 1.15rem !important; }
+  h1, .h1 { font-size: 1.45rem !important; }
+  h2, .h2 { font-size: 1.25rem !important; }
+  h3, .h3 { font-size: 1.05rem !important; }
 
   .btn-primary, .btn-secondary {
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.85rem;
   }
 }
+

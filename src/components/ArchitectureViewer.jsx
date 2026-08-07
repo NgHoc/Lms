@@ -5,21 +5,21 @@ export default function ArchitectureViewer() {
   const [activeSubTab, setActiveSubTab] = useState('stack');
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '2rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '1200px', margin: '1.5rem auto', padding: '0 0.5rem' }}>
       {/* Header Banner */}
-      <div className="lms-card" style={{ padding: '2rem', marginBottom: '1.5rem', backgroundColor: '#ffffff' }}>
+      <div className="lms-card" style={{ padding: '1.75rem 1.25rem', marginBottom: '1.5rem', backgroundColor: '#ffffff' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <Layers style={{ color: '#1e40af' }} size={28} />
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>
+          <Layers style={{ color: '#1e40af', flexShrink: 0 }} size={28} />
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
             Hồ Sơ Kiến Trúc System & Tài Liệu Thiết Kế Kỹ Thuật
           </h2>
         </div>
-        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+        <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
           Báo cáo tư vấn giải pháp toàn diện cho Hệ thống LMS Sinh viên (Tech Stack, DB Schema ERD, Thuật toán bóc tách file Word/PDF màu sắc & API Flow).
         </p>
 
         {/* Sub-nav tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveSubTab('stack')}
             className={activeSubTab === 'stack' ? 'btn-primary' : 'btn-secondary'}

@@ -62,21 +62,39 @@ export default function Header({ activeTab, setActiveTab }) {
                 Antigravity LMS
               </span>
               <span style={{
-                fontSize: '0.68rem',
+                fontSize: '0.65rem',
                 fontWeight: 800,
                 background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
                 color: '#4f46e5',
-                padding: '2px 8px',
+                padding: '1px 7px',
                 borderRadius: '9999px',
                 border: '1px solid #c7d2fe',
                 letterSpacing: '0.02em'
               }}>
-                v3.2 PRO
+                PRO
               </span>
             </div>
-            <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0, fontWeight: 500 }}>
-              Hệ thống ôn luyện thông minh & Ngân hàng đề thi tương tác
+            <p className="desktop-user-profile" style={{ fontSize: '0.75rem', color: '#64748b', margin: 0, fontWeight: 500 }}>
+              Hệ thống ôn luyện thông minh & Ngân hàng đề thi
             </p>
+          </div>
+        </div>
+
+        {/* Mobile quick avatar */}
+        <div style={{ display: 'none' }} className="mobile-user-avatar">
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '0.75rem',
+            fontWeight: 800
+          }}>
+            AN
           </div>
         </div>
 

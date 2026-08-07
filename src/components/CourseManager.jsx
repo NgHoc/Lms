@@ -261,36 +261,36 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '2rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '1200px', margin: '1.5rem auto', padding: '0 0.5rem' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
             Quản Lý Học Phần & Ngân Hàng Câu Hỏi
           </h2>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 500 }}>
             Thêm, chỉnh sửa, xóa và cấu trúc hóa Học phần — Bài học — Câu hỏi trực tiếp.
           </p>
         </div>
-        <button onClick={openAddCourse} className="btn-primary">
+        <button onClick={openAddCourse} className="btn-primary" style={{ flexShrink: 0 }}>
           <Plus size={18} /> Thêm Học Phần Mới
         </button>
       </div>
 
       {/* Stats bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
+      <div className="manager-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
         {[
           { label: 'Học phần trong hệ thống', value: courses.length, gradient: 'var(--primary-gradient)', icon: <BookOpen size={20} /> },
           { label: 'Bài học đã phân chia', value: lessons.length, gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', icon: <Layers size={20} /> },
           { label: 'Tổng số câu hỏi', value: questions.length, gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', icon: <HelpCircle size={20} /> },
         ].map((s, i) => (
-          <div key={i} className="lms-card" style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: s.gradient, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+          <div key={i} className="lms-card manager-stat-card" style={{ padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: 'var(--shadow-sm)' }}>
+            <div className="manager-stat-icon" style={{ width: '44px', height: '44px', borderRadius: '12px', background: s.gradient, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', flexShrink: 0 }}>
               {s.icon}
             </div>
             <div>
-              <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{s.value}</div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>{s.label}</div>
+              <div className="manager-stat-value" style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{s.value}</div>
+              <div className="manager-stat-label" style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>{s.label}</div>
             </div>
           </div>
         ))}
@@ -299,7 +299,7 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
       {/* Course list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {courses.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '3.5rem', color: '#94a3b8', border: '2px dashed #cbd5e1', borderRadius: '16px', backgroundColor: '#f8fafc' }}>
+          <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: '#94a3b8', border: '2px dashed #cbd5e1', borderRadius: '16px', backgroundColor: '#f8fafc' }}>
             <BookOpen size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
             <p style={{ fontWeight: 600 }}>Chưa có học phần nào. Nhấp "Thêm Học Phần Mới" để bắt đầu.</p>
           </div>
@@ -311,33 +311,38 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
           const isExpanded = expandedCourses[course.id];
 
           return (
-            <div key={course.id} className="lms-card" style={{ overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}>
+            <div key={course.id} className="lms-card" style={{ overflow: 'hidden', boxShadow: 'var(--shadow-md)', padding: 0 }}>
               {/* Course header row */}
-              <div style={{ padding: '1.15rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.875rem', borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none', backgroundColor: '#fafbff' }}>
-                <button onClick={() => toggleCourse(course.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', padding: '4px' }}>
-                  {isExpanded ? <ChevronDown size={22} color="#4f46e5" /> : <ChevronRight size={22} />}
-                </button>
+              <div className="course-card-header" style={{ padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.875rem', borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none', backgroundColor: '#fafbff' }}>
+                
+                <div className="course-title-row" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                  <button onClick={() => toggleCourse(course.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', padding: '4px', flexShrink: 0, marginTop: '2px' }}>
+                    {isExpanded ? <ChevronDown size={22} color="#4f46e5" /> : <ChevronRight size={22} />}
+                  </button>
 
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                    <span style={{ fontWeight: 800, color: '#4f46e5', fontSize: '0.8rem', backgroundColor: '#eef2ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #c7d2fe' }}>
-                      {course.code}
-                    </span>
-                    <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem' }}>{course.title}</span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem', fontWeight: 500 }}>
-                    {courseLessons.length} bài học • {courseQCount} câu hỏi
+                  <div className="course-info-block" style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.2rem' }}>
+                      <span style={{ fontWeight: 800, color: '#4f46e5', fontSize: '0.78rem', backgroundColor: '#eef2ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #c7d2fe', flexShrink: 0 }}>
+                        {course.code}
+                      </span>
+                      <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                        {course.title}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>
+                      {courseLessons.length} bài học • {courseQCount} câu hỏi
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => openAddLesson(course.id)} className="btn-outline-primary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}>
+                <div className="course-actions-group" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                  <button onClick={() => openAddLesson(course.id)} className="btn-outline-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}>
                     <Plus size={14} /> Thêm Bài
                   </button>
-                  <button onClick={() => openEditCourse(course)} className="btn-secondary" style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}>
+                  <button onClick={() => openEditCourse(course)} className="btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}>
                     <Pencil size={14} /> Sửa
                   </button>
-                  <button onClick={() => setConfirmDelete({ type: 'course', id: course.id, name: course.title })} style={{ padding: '0.4rem 0.85rem', borderRadius: '8px', border: '1px solid #fecdd3', backgroundColor: '#fff1f2', color: '#f43f5e', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <button onClick={() => setConfirmDelete({ type: 'course', id: course.id, name: course.title })} style={{ padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #fecdd3', backgroundColor: '#fff1f2', color: '#f43f5e', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Trash2 size={14} /> Xóa
                   </button>
                 </div>
@@ -345,7 +350,7 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
 
               {/* Lessons list */}
               {isExpanded && (
-                <div style={{ padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.625rem', backgroundColor: '#f8fafc' }}>
                   {courseLessons.length === 0 && (
                     <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>
                       Chưa có bài học nào trong học phần này.
@@ -357,30 +362,32 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
                     const isLessonExpanded = expandedLessons[lesson.id];
 
                     return (
-                      <div key={lesson.id} style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div key={lesson.id} style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#ffffff' }}>
                         {/* Lesson row */}
-                        <div style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.625rem', backgroundColor: isLessonExpanded ? '#f8fafc' : '#ffffff' }}>
-                          <button onClick={() => toggleLesson(lesson.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex' }}>
-                            {isLessonExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                          </button>
+                        <div className="lesson-card-header" style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.625rem', backgroundColor: isLessonExpanded ? '#f1f5f9' : '#ffffff' }}>
+                          <div className="lesson-title-row" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flex: 1, minWidth: 0 }}>
+                            <button onClick={() => toggleLesson(lesson.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', flexShrink: 0 }}>
+                              {isLessonExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </button>
 
-                          <span style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#f1f5f9', color: '#64748b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>
-                            {lesson.lessonNumber}
-                          </span>
+                            <span style={{ width: '26px', height: '26px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#475569', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, flexShrink: 0 }}>
+                              {lesson.lessonNumber}
+                            </span>
 
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.9rem' }}>{lesson.title}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{lessonQs.length} câu hỏi</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.88rem', wordBreak: 'break-word' }}>{lesson.title}</div>
+                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{lessonQs.length} câu hỏi</div>
+                            </div>
                           </div>
 
-                          <div style={{ display: 'flex', gap: '0.4rem' }}>
-                            <button onClick={() => openAddQuestion(lesson.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '4px 8px', borderRadius: '5px', border: '1px solid #d1fae5', backgroundColor: '#ecfdf5', color: '#047857', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer' }}>
+                          <div className="lesson-actions-group" style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                            <button onClick={() => openAddQuestion(lesson.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '4px 8px', borderRadius: '6px', border: '1px solid #d1fae5', backgroundColor: '#ecfdf5', color: '#047857', fontSize: '0.73rem', fontWeight: 700, cursor: 'pointer' }}>
                               <Plus size={11} /> Thêm Câu
                             </button>
-                            <button onClick={() => openEditLesson(lesson)} style={{ padding: '4px 8px', borderRadius: '5px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#475569', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <button onClick={() => openEditLesson(lesson)} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#475569', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                               <Pencil size={11} /> Sửa
                             </button>
-                            <button onClick={() => setConfirmDelete({ type: 'lesson', id: lesson.id, name: lesson.title })} style={{ padding: '4px 8px', borderRadius: '5px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <button onClick={() => setConfirmDelete({ type: 'lesson', id: lesson.id, name: lesson.title })} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                               <Trash2 size={11} /> Xóa
                             </button>
                           </div>
@@ -388,7 +395,7 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
 
                         {/* Questions list */}
                         {isLessonExpanded && (
-                          <div style={{ borderTop: '1px solid #f1f5f9', padding: '0.5rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', backgroundColor: '#fdfdfd' }}>
+                          <div style={{ borderTop: '1px solid #e2e8f0', padding: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: '#fdfdfd' }}>
                             {lessonQs.length === 0 && (
                               <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.82rem' }}>
                                 Chưa có câu hỏi. Nhấp "Thêm Câu" hoặc Upload file đề.
@@ -396,22 +403,24 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
                             )}
 
                             {lessonQs.map((q, qIdx) => (
-                              <div key={q.id} style={{ padding: '0.625rem 0.875rem', borderRadius: '8px', border: '1px solid #f1f5f9', backgroundColor: '#ffffff', display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                              <div key={q.id} className="question-item-card" style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #f1f5f9', backgroundColor: '#ffffff', display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
                                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', minWidth: '20px', paddingTop: '2px' }}>
                                   {qIdx + 1}
                                 </span>
 
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0f172a', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', lineHeight: 1.4, wordBreak: 'break-word' }}>
                                     {q.content?.length > 120 ? q.content.slice(0, 120) + '...' : q.content}
                                   </div>
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: TYPE_COLORS[q.type] + '15', color: TYPE_COLORS[q.type], padding: '1px 7px', borderRadius: '4px', marginTop: '3px', display: 'inline-block' }}>
-                                    {TYPE_LABELS[q.type] || q.type}
-                                  </span>
-                                  {q.options && <span style={{ fontSize: '0.7rem', color: '#64748b', marginLeft: '6px' }}>{q.options.length} lựa chọn • {q.options.filter(o => o.isCorrect).length} đáp án đúng</span>}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: 800, backgroundColor: TYPE_COLORS[q.type] + '18', color: TYPE_COLORS[q.type], padding: '2px 8px', borderRadius: '4px' }}>
+                                      {TYPE_LABELS[q.type] || q.type}
+                                    </span>
+                                    {q.options && <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{q.options.length} lựa chọn • {q.options.filter(o => o.isCorrect).length} đáp án đúng</span>}
+                                  </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                                <div className="question-item-actions" style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
                                   <button onClick={() => openEditQuestion(q)} style={{ padding: '4px 8px', borderRadius: '5px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#475569', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                     <Pencil size={11} /> Sửa
                                   </button>
@@ -713,14 +722,18 @@ function ModalWrapper({ title, onClose, children, wide = false }) {
       padding: '2.5rem 1rem',
       overflowY: 'auto'
     }} className="animate-fade-in">
-      <div style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '20px',
-        padding: '2.25rem',
-        width: '100%',
-        maxWidth: wide ? '720px' : '520px',
-        boxShadow: 'var(--shadow-xl)'
-      }}>
+      <div
+        className="modal-responsive-card"
+        style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '20px',
+          padding: '2.25rem',
+          width: '100%',
+          maxWidth: wide ? '720px' : '520px',
+          boxShadow: 'var(--shadow-xl)',
+          overflowY: 'auto'
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>{title}</h3>
           <button onClick={onClose} style={{ padding: '6px', borderRadius: '8px', border: 'none', cursor: 'pointer', backgroundColor: '#f1f5f9', color: '#64748b' }}><X size={18} /></button>

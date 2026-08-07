@@ -42,7 +42,7 @@ export default function App() {
 
         {/* ── Tab: Quản Lý Nội Dung (CRUD) ───────────────────────────────── */}
         {activeTab === 'manage' && (
-          <div style={{ padding: '2rem 1.5rem' }}>
+          <div className="page-content-container" style={{ padding: '2rem 1.5rem' }}>
             <CourseManager
               courses={courses}
               setCourses={setCourses}
