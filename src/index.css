@@ -67,7 +67,9 @@
   --radius-2xl: 24px;
   --radius-full: 9999px;
 
-  --font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-outfit: "Outfit", var(--font-sans);
+  --font-family: var(--font-sans);
 }
 
 * {
@@ -77,17 +79,23 @@
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: var(--font-sans);
   background-color: var(--bg-main);
   background-image: 
     radial-gradient(at 0% 0%, rgba(238, 242, 255, 0.7) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(245, 243, 255, 0.5) 0px, transparent 50%),
     radial-gradient(at 50% 100%, rgba(240, 253, 250, 0.4) 0px, transparent 50%);
   background-attachment: fixed;
-  color: var(--text-main);
-  line-height: 1.5;
+  color: #334155;
+  line-height: 1.65;
+  letter-spacing: -0.2px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button, input, select, textarea, optgroup {
+  font-family: inherit;
+  letter-spacing: inherit;
 }
 
 /* ── Custom Scrollbar ──────────────────────────────────────────────────────── */
@@ -520,7 +528,7 @@ body {
 /* ── Animations ────────────────────────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: none; }
 }
 
 .animate-fade-in {
@@ -535,6 +543,18 @@ body {
 /* ═════════════════════════════════════════════════════════════════════════
    MOBILE & RESPONSIVE DESIGN SYSTEM
    ═════════════════════════════════════════════════════════════════════════ */
+
+.app-main-content {
+  position: relative;
+  flex: 1;
+  padding-top: 96px;
+  padding-bottom: 3.5rem;
+}
+
+.app-main-content.is-home {
+  padding-top: 0;
+  padding-bottom: 0;
+}
 
 /* ── Layout Grids ─────────────────────────────────────────────────────────── */
 .quiz-layout-grid {
@@ -576,17 +596,18 @@ body {
     --radius-xl: 16px;
   }
 
-  body {
-    padding-bottom: 72px; /* Reserve space for mobile bottom nav */
+  .app-main-content {
+    padding-top: 68px !important;
+    padding-bottom: 2rem !important;
   }
 
   .quiz-main-card {
-    padding: 1.25rem !important;
+    padding: 1.15rem 1rem !important;
     border-radius: var(--radius-lg) !important;
   }
 
   .lms-card {
-    padding: 1.25rem !important;
+    padding: 1.15rem 1rem !important;
   }
 
   /* Header adjustments */
@@ -693,6 +714,37 @@ body {
 
   .quiz-action-footer .btn-group button {
     flex: 1;
+  }
+
+  /* Match pairs table mobile adaptation */
+  .match-table-header {
+    display: none !important;
+  }
+
+  .match-pair-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 0.85rem !important;
+    gap: 0.65rem !important;
+    border-bottom: 1.5px solid #f1f5f9 !important;
+  }
+
+  .match-pair-left {
+    border-right: none !important;
+    padding: 0 !important;
+    font-size: 0.9rem !important;
+  }
+
+  .match-pair-right {
+    padding: 0 !important;
+    justify-content: stretch !important;
+    width: 100% !important;
+  }
+
+  .match-pair-right > div {
+    width: 100% !important;
+    min-width: 100% !important;
   }
 
   /* True / False button full-width */

@@ -3,6 +3,10 @@ import Header from './components/Header';
 import QuizSystem from './components/QuizSystem';
 import AdminParser from './components/AdminParser';
 import CourseManager from './components/CourseManager';
+import AssistHero from './components/AssistHero';
+import GuideVideoModal from './components/GuideVideoModal';
+import './components/AssistHero.css';
+import './components/ModernLmsTheme.css';
 import {
   getInitialCourses,
   getInitialLessons,
@@ -13,7 +17,8 @@ import {
 } from './store/lmsStore';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('quiz');
+  const [activeTab, setActiveTab] = useState('home');
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   // ── Shared reactive state (persisted to localStorage) ─────────────────────
   const [courses, setCourses] = useState(() => getInitialCourses());
@@ -25,23 +30,61 @@ export default function App() {
   useEffect(() => { saveQuestionsToStorage(questions); }, [questions]);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)', display: 'flex', flexDirection: 'column' }}>
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div style={{
+      position: 'relative',
+      minHeight: '100vh',
+      backgroundColor: '#ffffff',
+      display: 'flex',
+      flexDirection: 'column',
+      overflowX: 'hidden'
+    }}>
+      {/* ── Global Ambient Radial Glow Spotlights ───────────────────────── */}
+      <div className="assist-ambient-aura-1" />
+      <div className="assist-ambient-aura-2" />
+      <div className="assist-ambient-aura-3" />
 
-      <main style={{ flex: 1, paddingBottom: '3rem' }}>
+      {/* ── Unified Floating Liquid-Glass Header Across All Pages ──────── */}
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenGuide={() => setShowGuideModal(true)}
+      />
+
+      {/* ── Global Interactive Guide Video Modal ────────────────────────── */}
+      <GuideVideoModal
+        isOpen={showGuideModal}
+        onClose={() => setShowGuideModal(false)}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+        }}
+      />
+
+      {/* ── Main Content Area with Adaptive Top Padding for Floating Navbar ─ */}
+      <main className={`app-main-content ${activeTab === 'home' ? 'is-home' : ''}`}>
+        {/* ── Tab: Assist. AI Landing Page (Home) ─────────────────────────── */}
+        {activeTab === 'home' && (
+          <AssistHero
+            setActiveTab={setActiveTab}
+            coursesCount={courses.length}
+            questionsCount={questions.length}
+            onOpenGuide={() => setShowGuideModal(true)}
+          />
+        )}
 
         {/* ── Tab: Ôn Luyện & Thi ────────────────────────────────────────── */}
         {activeTab === 'quiz' && (
-          <QuizSystem
-            courses={courses}
-            lessons={lessons}
-            questions={questions}
-          />
+          <div className="page-content-container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem 1.5rem' }}>
+            <QuizSystem
+              courses={courses}
+              lessons={lessons}
+              questions={questions}
+            />
+          </div>
         )}
 
         {/* ── Tab: Quản Lý Nội Dung (CRUD) ───────────────────────────────── */}
         {activeTab === 'manage' && (
-          <div className="page-content-container" style={{ padding: '2rem 1.5rem' }}>
+          <div className="page-content-container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem 1.5rem' }}>
             <CourseManager
               courses={courses}
               setCourses={setCourses}
@@ -55,20 +98,25 @@ export default function App() {
 
         {/* ── Tab: Upload & Bóc Tách File ─────────────────────────────────── */}
         {activeTab === 'admin' && (
-          <AdminParser
-            courses={courses}
-            setCourses={setCourses}
-            lessons={lessons}
-            setLessons={setLessons}
-            questions={questions}
-            setQuestions={setQuestions}
-          />
+          <div className="page-content-container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem 1.5rem' }}>
+            <AdminParser
+              courses={courses}
+              setCourses={setCourses}
+              lessons={lessons}
+              setLessons={setLessons}
+              questions={questions}
+              setQuestions={setQuestions}
+            />
+          </div>
         )}
       </main>
 
       {/* Modern Premium Footer */}
       <footer style={{
-        backgroundColor: '#ffffff',
+        position: 'relative',
+        zIndex: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.85)',
+        backdropFilter: 'blur(16px)',
         borderTop: '1px solid rgba(226, 232, 240, 0.8)',
         padding: '1.25rem 1.5rem',
         color: '#64748b',
@@ -76,7 +124,7 @@ export default function App() {
         marginTop: 'auto'
       }}>
         <div style={{
-          maxWidth: '1440px',
+          maxWidth: '1280px',
           margin: '0 auto',
           display: 'flex',
           justifyContent: 'space-between',
@@ -86,11 +134,15 @@ export default function App() {
         }}>
           {/* Brand Info */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
+            <div
+              onClick={() => setActiveTab('home')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer'
+              }}
+            >
               <span style={{
                 width: '26px',
                 height: '26px',

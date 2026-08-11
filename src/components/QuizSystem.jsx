@@ -13,6 +13,7 @@ import {
   calculateCourseStats
 } from '../store/lmsStore';
 
+
 function shuffleArray(arr) {
   const result = [...arr];
   for (let i = result.length - 1; i > 0; i--) {
@@ -34,6 +35,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyFilterCourseId, setHistoryFilterCourseId] = useState(courses[0]?.id || 'ALL');
   const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
+  const [showLessonSelectModal, setShowLessonSelectModal] = useState(false);
 
   // Active Test State
   const [isTestActive, setIsTestActive] = useState(false);
@@ -145,6 +147,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
     setTestResult(null);
     setActiveSessionMeta(null);
     setShowSubmitConfirmModal(false);
+    setShowLessonSelectModal(false);
     if (onClearCustomSession) onClearCustomSession();
 
     let durationSeconds = 15 * 60;
@@ -153,6 +156,23 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
 
     setTimeLeft(durationSeconds);
     setIsTestActive(true);
+  };
+
+  // Triggered when user clicks main "Bắt Đầu Làm Bài Test Ngay"
+  const handleInitiateStart = () => {
+    if (courses.length === 0 || !selectedCourseId || questions.length === 0) return;
+
+    if (selectedMode === "TEST_60") {
+      // Test 60 mins uses whole course bank, starts directly
+      handleStartTest();
+    } else {
+      // Test 15 or 30 mins: Open floating popup modal to pick lessons
+      if (courseLessons.length === 0) {
+        handleStartTest();
+        return;
+      }
+      setShowLessonSelectModal(true);
+    }
   };
 
   // Timer Tick
@@ -446,508 +466,309 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
   const currentCourseStats = calculateCourseStats(selectedCourseId, history);
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '1.5rem auto', padding: '0 1.25rem' }}>
+    <div className="lms-page-container">
       {!isTestActive ? (
-        <div style={{ maxWidth: '960px', margin: '0 auto' }} className="animate-fade-in">
+        <div className="animate-fade-in">
           
-          {/* Main Card Container */}
-          <div className="lms-card" style={{ padding: '2.5rem', boxShadow: 'var(--shadow-xl)' }}>
-            
-            {/* Hero Title */}
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          {/* Hero Title Section */}
+          <div className="lms-page-hero-header">
+            <div className="hero-eyebrow-badge">
+              <span className="hero-eyebrow-dot" />
+              <span className="hero-eyebrow-text">Ngân Hàng Đề Thi & Luyện Tập Thông Minh</span>
+            </div>
+            <h1 className="hero-title">
+              Hệ Thống <span className="hero-gradient-title">Ôn Luyện & Thi Thử</span> Trực Tuyến
+            </h1>
+            <p className="hero-subtitle">
+              Lựa chọn Học phần và Chế độ thi phù hợp để hệ thống tự động trích xuất và xáo trộn câu hỏi từ ngân hàng đề thi.
+            </p>
+          </div>
+
+          {/* Realtime Statistics Summary Bar (Lưu & Tính Riêng Biệt Theo Từng Học Phần Đang Chọn) */}
+          <div className="lms-stats-grid">
+            {/* Lượt làm bài card */}
+            <div
+              onClick={() => {
+                setHistoryFilterCourseId(selectedCourseId);
+                setShowHistoryModal(true);
+              }}
+              className="lms-stat-card"
+            >
+              <div className="lms-stat-icon-wrapper lms-stat-icon-indigo">
+                <Target size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="lms-stat-label">
+                  Lượt làm bài • {activeCourse?.code || 'Học phần'}
+                </div>
+                <div className="lms-stat-value">
+                  {currentCourseStats.attempts} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>lượt</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Điểm trung bình card (Click mở xem chi tiết) */}
+            <div
+              onClick={() => {
+                setHistoryFilterCourseId(selectedCourseId);
+                setShowHistoryModal(true);
+              }}
+              className="lms-stat-card"
+            >
+              <div className="lms-stat-icon-wrapper lms-stat-icon-blue">
+                <TrendingUp size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="lms-stat-label" style={{ color: '#0284c7' }}>
+                  Điểm trung bình
+                </div>
+                <div className="lms-stat-value" style={{ color: '#0369a1' }}>
+                  {currentCourseStats.avgScore} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0284c7' }}>/ 10</span>
+                </div>
+              </div>
               <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '4px 14px',
-                borderRadius: '9999px',
-                background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
-                color: '#4f46e5',
-                fontSize: '0.8rem',
+                fontSize: '0.72rem',
                 fontWeight: 800,
-                border: '1px solid #c7d2fe',
-                marginBottom: '1rem'
+                backgroundColor: '#ffffff',
+                color: '#0084FF',
+                padding: '4px 10px',
+                borderRadius: '9999px',
+                border: '1px solid #bae6fd',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.2rem',
+                flexShrink: 0
               }}>
-                <Sparkles size={14} /> NGÂN HÀNG ĐỀ THI THÔNG MINH
-              </div>
-              <h2 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.025em', marginBottom: '0.5rem' }}>
-                Hệ Thống Ôn Luyện & Thi Thử Trực Tuyến
-              </h2>
-              <p style={{ color: '#64748b', fontSize: '0.975rem', maxWidth: '640px', margin: '0 auto' }}>
-                Lựa chọn Học phần và Chế độ thi phù hợp để hệ thống tự động trích xuất và xáo trộn câu hỏi từ ngân hàng đề thi.
-              </p>
-            </div>
-
-            {/* Realtime Statistics Summary Bar (Lưu & Tính Riêng Biệt Theo Từng Học Phần Đang Chọn) */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-              gap: '1rem',
-              marginBottom: '2.25rem'
-            }}>
-              {/* Lượt làm bài card */}
-              <div
-                onClick={() => {
-                  setHistoryFilterCourseId(selectedCourseId);
-                  setShowHistoryModal(true);
-                }}
-                className="lms-card-interactive"
-                style={{
-                  padding: '1.25rem 1.4rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  cursor: 'pointer',
-                  border: '1.5px solid #e2e8f0',
-                  background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                  borderRadius: '16px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)'
-                }}
-              >
-                <div style={{
-                  width: '46px',
-                  height: '46px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
-                  color: '#4f46e5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 10px rgba(79, 70, 229, 0.15)',
-                  flexShrink: 0
-                }}>
-                  <Target size={24} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Lượt làm bài • {activeCourse?.code || 'Học phần'}
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
-                    {currentCourseStats.attempts} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>lượt</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Điểm trung bình card (Click mở xem chi tiết) */}
-              <div
-                onClick={() => {
-                  setHistoryFilterCourseId(selectedCourseId);
-                  setShowHistoryModal(true);
-                }}
-                className="lms-card-interactive"
-                style={{
-                  padding: '1.25rem 1.4rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem',
-                  cursor: 'pointer',
-                  border: '2px solid #818cf8',
-                  background: 'linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%)',
-                  borderRadius: '16px',
-                  boxShadow: '0 4px 16px -2px rgba(79, 70, 229, 0.15)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-                  <div style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '12px',
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.35)',
-                    flexShrink: 0
-                  }}>
-                    <TrendingUp size={24} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#4f46e5', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Điểm trung bình
-                    </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#1e1b4b', lineHeight: 1.2 }}>
-                      {currentCourseStats.avgScore} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6366f1' }}>/ 10</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  backgroundColor: '#ffffff',
-                  color: '#4f46e5',
-                  padding: '4px 8px',
-                  borderRadius: '9999px',
-                  border: '1px solid #c7d2fe',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.2rem',
-                  flexShrink: 0
-                }}>
-                  <span>Chi tiết</span>
-                  <ChevronRight size={12} />
-                </div>
-              </div>
-
-              {/* Điểm cao nhất card */}
-              <div
-                onClick={() => {
-                  setHistoryFilterCourseId(selectedCourseId);
-                  setShowHistoryModal(true);
-                }}
-                className="lms-card-interactive"
-                style={{
-                  padding: '1.25rem 1.4rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  cursor: 'pointer',
-                  border: '1.5px solid #e2e8f0',
-                  background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                  borderRadius: '16px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)'
-                }}
-              >
-                <div style={{
-                  width: '46px',
-                  height: '46px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-                  color: '#059669',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 10px rgba(5, 150, 105, 0.15)',
-                  flexShrink: 0
-                }}>
-                  <Award size={24} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Điểm cao nhất
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#065f46', lineHeight: 1.2 }}>
-                    {currentCourseStats.maxScore} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#059669' }}>/ 10</span>
-                  </div>
-                </div>
+                <span>Lịch sử</span>
+                <ChevronRight size={12} />
               </div>
             </div>
 
-            {/* Step 1: Select Course */}
-            <div style={{ marginBottom: '2.25rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', marginBottom: '0.875rem' }}>
-                <span style={{
-                  background: 'var(--primary-gradient)',
-                  color: '#fff',
-                  borderRadius: '50%',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '26px',
-                  height: '26px',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)'
-                }}>1</span>
-                Bước 1: Chọn Học Phần ({courses.length} Học Phần Hiện Có)
-              </label>
-
-              {courses.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem', color: '#94a3b8', border: '2px dashed #cbd5e1', borderRadius: '16px', backgroundColor: '#f8fafc' }}>
-                  <BookOpen size={44} style={{ marginBottom: '0.75rem', opacity: 0.4, color: '#4f46e5' }} />
-                  <p style={{ fontWeight: 800, color: '#1e293b', fontSize: '1rem', marginBottom: '0.35rem' }}>
-                    Chưa có học phần nào trong cơ sở dữ liệu
-                  </p>
-                  <p style={{ fontSize: '0.85rem', color: '#64748b', maxWidth: '460px', margin: '0 auto' }}>
-                    Vui lòng chuyển sang tab <strong>"Quản Lý Nội Dung"</strong> để tự tạo hoặc tab <strong>"Upload & Bóc Tách"</strong> để nhập file Word đề thi vào hệ thống.
-                  </p>
+            {/* Điểm cao nhất card */}
+            <div
+              onClick={() => {
+                setHistoryFilterCourseId(selectedCourseId);
+                setShowHistoryModal(true);
+              }}
+              className="lms-stat-card"
+            >
+              <div className="lms-stat-icon-wrapper lms-stat-icon-emerald">
+                <Award size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="lms-stat-label" style={{ color: '#059669' }}>
+                  Điểm cao nhất
                 </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                  {courses.map(course => {
-                    const isSelected = selectedCourseId === course.id;
-                    const cLessonCount = lessons.filter(l => l.courseId === course.id).length;
-                    const cQuestionCount = course.questionsCount || questions.filter(q => lessons.filter(l => l.courseId === course.id).map(l => l.id).includes(q.lessonId)).length;
+                <div className="lms-stat-value" style={{ color: '#065f46' }}>
+                  {currentCourseStats.maxScore} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#059669' }}>/ 10</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                    return (
-                      <div
-                        key={course.id}
-                        onClick={() => setSelectedCourseId(course.id)}
-                        className={`lms-card-interactive ${isSelected ? 'selected' : ''}`}
-                        style={{
-                          padding: '1.25rem 1.35rem',
-                          borderWidth: isSelected ? '2px' : '1.5px'
-                        }}
-                      >
-                        {isSelected && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '12px',
-                            right: '12px',
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '50%',
-                            background: 'var(--primary-gradient)',
-                            color: '#fff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 2px 6px rgba(79, 70, 229, 0.4)'
-                          }}>
-                            <Check size={14} strokeWidth={3} />
-                          </div>
-                        )}
+          {/* Step 1: Select Course */}
+          <div style={{ marginBottom: '2.5rem' }}>
+            <div className="lms-step-header">
+              <span className="lms-step-badge">1</span>
+              <span className="lms-step-title">Chọn Học Phần Mục Tiêu ({courses.length} Học Phần Hiện Có)</span>
+            </div>
 
+            {courses.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem', color: '#94a3b8', border: '2px dashed #cbd5e1', borderRadius: '20px', backgroundColor: 'rgba(255,255,255,0.7)' }}>
+                <BookOpen size={44} style={{ marginBottom: '0.75rem', opacity: 0.4, color: '#0084FF' }} />
+                <p style={{ fontWeight: 800, color: '#1e293b', fontSize: '1rem', marginBottom: '0.35rem' }}>
+                  Chưa có học phần nào trong cơ sở dữ liệu
+                </p>
+                <p style={{ fontSize: '0.85rem', color: '#64748b', maxWidth: '460px', margin: '0 auto' }}>
+                  Vui lòng chuyển sang tab <strong>"Quản Lý Nội Dung"</strong> để tự tạo hoặc tab <strong>"Bóc Tách File"</strong> để nhập file Word đề thi vào hệ thống.
+                </p>
+              </div>
+            ) : (
+              <div className="lms-course-grid">
+                {courses.map(course => {
+                  const isSelected = selectedCourseId === course.id;
+                  const cLessonCount = lessons.filter(l => l.courseId === course.id).length;
+                  const cQuestionCount = course.questionsCount || questions.filter(q => lessons.filter(l => l.courseId === course.id).map(l => l.id).includes(q.lessonId)).length;
+
+                  return (
+                    <div
+                      key={course.id}
+                      onClick={() => setSelectedCourseId(course.id)}
+                      className={`lms-course-item ${isSelected ? 'selected' : ''}`}
+                    >
+                      {isSelected && (
                         <div style={{
-                          display: 'inline-block',
-                          fontWeight: 800,
-                          color: '#4f46e5',
-                          fontSize: '0.78rem',
-                          backgroundColor: '#eef2ff',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          marginBottom: '0.5rem',
-                          border: '1px solid #c7d2fe'
+                          position: 'absolute',
+                          top: '14px',
+                          right: '14px',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 8px rgba(0, 132, 255, 0.4)'
                         }}>
-                          {course.code}
+                          <Check size={14} strokeWidth={3} />
                         </div>
+                      )}
 
-                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.35, marginBottom: '0.5rem' }}>
-                          {course.title}
-                        </div>
-
-                        <div style={{ fontSize: '0.82rem', color: '#64748b', display: 'flex', gap: '0.75rem', fontWeight: 600 }}>
-                          <span>📖 {cLessonCount} bài học</span>
-                          <span>•</span>
-                          <span>❓ {cQuestionCount} câu hỏi</span>
-                        </div>
+                      <div className="lms-course-code-pill">
+                        {course.code}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
-            {/* Step 2: Select 3 Test Modes */}
-            <div style={{ marginBottom: '2.25rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontWeight: 800, fontSize: '0.95rem', color: '#0f172a', marginBottom: '0.875rem' }}>
-                <span style={{
-                  background: 'var(--primary-gradient)',
-                  color: '#fff',
-                  borderRadius: '50%',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '26px',
-                  height: '26px',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  boxShadow: '0 2px 6px rgba(79, 70, 229, 0.3)'
-                }}>2</span>
-                Bước 2: Chọn Chế Độ Thi Thử
-              </label>
+                      <div className="lms-course-title-text">
+                        {course.title}
+                      </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
-                
-                {/* Mode 15 */}
-                <div
-                  onClick={() => setSelectedMode("TEST_15")}
-                  className={`lms-card-interactive ${selectedMode === "TEST_15" ? 'selected' : ''}`}
-                  style={{ padding: '1.35rem', borderWidth: selectedMode === "TEST_15" ? '2px' : '1.5px' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '10px',
-                      background: selectedMode === "TEST_15" ? 'var(--primary-gradient)' : '#eef2ff',
-                      color: selectedMode === "TEST_15" ? '#fff' : '#4f46e5',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Clock size={18} />
+                      <div className="lms-course-meta-tags">
+                        <span>📖 {cLessonCount} bài học</span>
+                        <span>•</span>
+                        <span>❓ {cQuestionCount} câu hỏi</span>
+                      </div>
                     </div>
-                    <span className="badge badge-primary">15 Phút</span>
-                  </div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
-                    Test 15 Phút Nhanh
-                  </h4>
-                  <p style={{ fontSize: '0.825rem', color: '#64748b', lineHeight: 1.4 }}>
-                    15 câu hỏi ngẫu nhiên thuộc 1 Bài học cụ thể bạn chỉ định.
-                  </p>
-                </div>
-
-                {/* Mode 30 */}
-                <div
-                  onClick={() => setSelectedMode("TEST_30")}
-                  className={`lms-card-interactive ${selectedMode === "TEST_30" ? 'selected' : ''}`}
-                  style={{ padding: '1.35rem', borderWidth: selectedMode === "TEST_30" ? '2px' : '1.5px' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '10px',
-                      background: selectedMode === "TEST_30" ? 'var(--primary-gradient)' : '#f3e8ff',
-                      color: selectedMode === "TEST_30" ? '#fff' : '#7c3aed',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Layers size={18} />
-                    </div>
-                    <span className="badge badge-warning">30 Phút</span>
-                  </div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
-                    Test 30 Phút (Tối đa 3 Bài)
-                  </h4>
-                  <p style={{ fontSize: '0.825rem', color: '#64748b', lineHeight: 1.4 }}>
-                    30 câu hỏi ngẫu nhiên tổng hợp từ tối đa 3 Bài học bạn tự chọn.
-                  </p>
-                </div>
-
-                {/* Mode 60 */}
-                <div
-                  onClick={() => setSelectedMode("TEST_60")}
-                  className={`lms-card-interactive ${selectedMode === "TEST_60" ? 'selected' : ''}`}
-                  style={{ padding: '1.35rem', borderWidth: selectedMode === "TEST_60" ? '2px' : '1.5px' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                    <div style={{
-                      width: '36px', height: '36px', borderRadius: '10px',
-                      background: selectedMode === "TEST_60" ? 'var(--primary-gradient)' : '#ecfdf5',
-                      color: selectedMode === "TEST_60" ? '#fff' : '#059669',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Award size={18} />
-                    </div>
-                    <span className="badge badge-success">60 Phút</span>
-                  </div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
-                    Test Cuối Kỳ Chuẩn
-                  </h4>
-                  <p style={{ fontSize: '0.825rem', color: '#64748b', lineHeight: 1.4 }}>
-                    50 câu hỏi phủ khắp toàn bộ kho đề thi của Học phần.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Config for Test 15 mins */}
-            {selectedMode === "TEST_15" && (
-              <div style={{ marginBottom: '2.25rem', padding: '1.35rem', backgroundColor: '#f8fafc', borderRadius: '14px', border: '1.5px solid #e2e8f0' }} className="animate-fade-in">
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.9rem', marginBottom: '0.5rem', color: '#0f172a' }}>
-                  Chỉ định Bài học cho bài test 15 phút:
-                </label>
-                <select
-                  value={selectedLessonId}
-                  onChange={(e) => setSelectedLessonId(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    borderRadius: '10px',
-                    border: '1.5px solid #cbd5e1',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    outline: 'none',
-                    backgroundColor: '#ffffff',
-                    color: '#0f172a'
-                  }}
-                >
-                  {courseLessons.map(l => (
-                    <option key={l.id} value={l.id}>
-                      Bài {l.lessonNumber}: {l.title}
-                    </option>
-                  ))}
-                </select>
+                  );
+                })}
               </div>
             )}
+          </div>
 
-            {/* Config for Test 30 mins */}
-            {selectedMode === "TEST_30" && (
-              <div style={{ marginBottom: '2.25rem', padding: '1.35rem', backgroundColor: '#f8fafc', borderRadius: '14px', border: '1.5px solid #e2e8f0' }} className="animate-fade-in">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
-                  <label style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
-                    Chỉ định tối đa 3 Bài học cho bài test 30 phút:
-                  </label>
-                  <span className={`badge ${selected30LessonIds.length === 3 ? 'badge-primary' : 'badge-warning'}`}>
-                    {selected30LessonIds.length} / 3 bài đã chọn
+          {/* Step 2: Select Test Mode */}
+          <div style={{ marginBottom: '2.5rem' }}>
+            <div className="lms-step-header">
+              <span className="lms-step-badge">2</span>
+              <span className="lms-step-title">Chọn Chế Độ Thi Thử</span>
+            </div>
+
+            <div className="lms-mode-grid">
+              {/* Mode 15 */}
+              <div
+                onClick={() => setSelectedMode("TEST_15")}
+                className={`lms-mode-item ${selectedMode === "TEST_15" ? 'selected' : ''}`}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                  <div style={{
+                    width: '38px', height: '38px', borderRadius: '12px',
+                    background: selectedMode === "TEST_15" ? 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)' : '#e0f2fe',
+                    color: selectedMode === "TEST_15" ? '#fff' : '#0284c7',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <Clock size={18} />
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    background: '#e0f2fe',
+                    color: '#0284c7',
+                    padding: '3px 9px',
+                    borderRadius: '9999px',
+                    border: '1px solid #bae6fd'
+                  }}>
+                    15 Phút
                   </span>
                 </div>
-
-                {courseLessons.length === 0 ? (
-                  <div style={{ fontSize: '0.85rem', color: '#94a3b8', padding: '1rem 0', textAlign: 'center' }}>
-                    Học phần này chưa có bài học nào.
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
-                    {courseLessons.map(l => {
-                      const isSelected = selected30LessonIds.includes(l.id);
-                      const isDisabled = !isSelected && selected30LessonIds.length >= 3;
-                      const lessonQsCount = questions.filter(q => q.lessonId === l.id).length;
-
-                      return (
-                        <div
-                          key={l.id}
-                          onClick={() => {
-                            if (isDisabled) return;
-                            setSelected30LessonIds(prev => {
-                              if (prev.includes(l.id)) {
-                                if (prev.length === 1) return prev; // Keep at least 1
-                                return prev.filter(id => id !== l.id);
-                              }
-                              return [...prev, l.id];
-                            });
-                          }}
-                          style={{
-                            padding: '0.875rem 1.125rem',
-                            borderRadius: '12px',
-                            border: isSelected ? '2px solid #4f46e5' : '1.5px solid #cbd5e1',
-                            backgroundColor: isSelected ? '#eef2ff' : isDisabled ? '#f1f5f9' : '#ffffff',
-                            cursor: isDisabled ? 'not-allowed' : 'pointer',
-                            opacity: isDisabled ? 0.45 : 1,
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem'
-                          }}
-                        >
-                          <div style={{
-                            width: '22px', height: '22px', borderRadius: '6px',
-                            border: isSelected ? 'none' : '2px solid #94a3b8',
-                            background: isSelected ? 'var(--primary-gradient)' : 'transparent',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: '#fff', fontSize: '0.8rem', fontWeight: 800
-                          }}>
-                            {isSelected && <Check size={14} strokeWidth={3} />}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              Bài {l.lessonNumber}: {l.title}
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{lessonQsCount} câu hỏi</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                  Test 15 Phút Nhanh
+                </h4>
+                <p style={{ fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+                  15 câu hỏi ngẫu nhiên thuộc 1 Bài học cụ thể bạn chỉ định.
+                </p>
               </div>
-            )}
+
+              {/* Mode 30 */}
+              <div
+                onClick={() => setSelectedMode("TEST_30")}
+                className={`lms-mode-item ${selectedMode === "TEST_30" ? 'selected' : ''}`}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                  <div style={{
+                    width: '38px', height: '38px', borderRadius: '12px',
+                    background: selectedMode === "TEST_30" ? 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)' : '#fef3c7',
+                    color: selectedMode === "TEST_30" ? '#fff' : '#d97706',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <Layers size={18} />
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    background: '#fef3c7',
+                    color: '#d97706',
+                    padding: '3px 9px',
+                    borderRadius: '9999px',
+                    border: '1px solid #fde68a'
+                  }}>
+                    30 Phút
+                  </span>
+                </div>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                  Test 30 Phút (Tối đa 3 Bài)
+                </h4>
+                <p style={{ fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+                  30 câu hỏi ngẫu nhiên tổng hợp từ tối đa 3 Bài học bạn tự chọn.
+                </p>
+              </div>
+
+              {/* Mode 60 */}
+              <div
+                onClick={() => setSelectedMode("TEST_60")}
+                className={`lms-mode-item ${selectedMode === "TEST_60" ? 'selected' : ''}`}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                  <div style={{
+                    width: '38px', height: '38px', borderRadius: '12px',
+                    background: selectedMode === "TEST_60" ? 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)' : '#ecfdf5',
+                    color: selectedMode === "TEST_60" ? '#fff' : '#059669',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <Award size={18} />
+                  </div>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    padding: '3px 9px',
+                    borderRadius: '9999px',
+                    border: '1px solid #a7f3d0'
+                  }}>
+                    60 Phút
+                  </span>
+                </div>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                  Test Cuối Kỳ Chuẩn
+                </h4>
+                <p style={{ fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+                  50 câu hỏi phủ khắp toàn bộ kho đề thi của Học phần.
+                </p>
+              </div>
+            </div>
+          </div>
 
             {/* Start Button */}
-            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+            <div style={{ textAlign: 'center', marginTop: '3rem', marginBottom: '2rem' }}>
               <button
-                onClick={handleStartTest}
+                onClick={handleInitiateStart}
                 disabled={courses.length === 0 || !selectedCourseId || questions.length === 0}
-                className="btn-primary"
+                className="assist-btn-primary"
                 style={{
-                  fontSize: '1.05rem',
-                  padding: '1rem 3.5rem',
+                  margin: '0 auto',
+                  padding: '14px 36px',
                   borderRadius: '9999px',
+                  fontSize: '1.05rem',
+                  fontWeight: 700,
                   opacity: (courses.length === 0 || !selectedCourseId || questions.length === 0) ? 0.5 : 1,
                   cursor: (courses.length === 0 || !selectedCourseId || questions.length === 0) ? 'not-allowed' : 'pointer'
                 }}
               >
-                <Play size={22} /> Bắt Đầu Làm Bài Test Ngay
+                <span>Bắt Đầu Làm Bài Test Ngay</span>
+                <div className="assist-btn-primary-bead">
+                  <Play size={16} style={{ fill: '#0084FF', marginLeft: '2px' }} />
+                </div>
               </button>
             </div>
-          </div>
         </div>
       ) : (
         /* Examination Layout */
@@ -1055,13 +876,13 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
 
             {/* Question Title Statement */}
             <div style={{
-              fontSize: '1.15rem',
-              fontWeight: 800,
-              color: '#0f172a',
+              fontSize: '1.125rem',
+              fontWeight: 600,
+              color: '#1e293b',
               marginBottom: '1.75rem',
-              lineHeight: 1.6,
+              lineHeight: 1.65,
               wordBreak: 'break-word',
-              letterSpacing: '-0.01em'
+              letterSpacing: '-0.2px'
             }}>
               {currentQ.content}
             </div>
@@ -1084,7 +905,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                         {opt.key}
                       </div>
 
-                      <div style={{ flex: 1, fontSize: '0.95rem', color: isSelected ? '#1e1b4b' : '#334155', fontWeight: isSelected ? 700 : 500, lineHeight: 1.5 }}>
+                      <div style={{ flex: 1, fontSize: '0.95rem', color: isSelected ? '#0f172a' : '#475569', fontWeight: isSelected ? 600 : 400, lineHeight: 1.65, letterSpacing: '-0.2px' }}>
                         {opt.text}
                       </div>
 
@@ -1133,7 +954,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                         boxShadow: 'var(--shadow-xs)'
                       }}
                     >
-                      <div style={{ flex: 1, fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', minWidth: '200px', lineHeight: 1.5 }}>
+                      <div style={{ flex: 1, fontSize: '0.95rem', fontWeight: 500, color: '#334155', minWidth: '200px', lineHeight: 1.65, letterSpacing: '-0.2px' }}>
                         <span style={{ color: '#4f46e5', fontWeight: 800, marginRight: '0.5rem' }}>{opt.key}.</span>
                         {opt.text}
                       </div>
@@ -1246,7 +1067,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                       boxShadow: 'var(--shadow-sm)'
                     }}>
                       {/* Table Header */}
-                      <div style={{
+                      <div className="match-table-header" style={{
                         display: 'grid',
                         gridTemplateColumns: 'minmax(0, 1.4fr) minmax(220px, 1fr)',
                         backgroundColor: '#f8fafc',
@@ -1271,6 +1092,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                           return (
                             <div
                               key={pIdx}
+                              className="match-pair-row"
                               style={{
                                 display: 'grid',
                                 gridTemplateColumns: 'minmax(0, 1.4fr) minmax(220px, 1fr)',
@@ -1281,7 +1103,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                               }}
                             >
                               {/* Left Cell: Statement */}
-                              <div style={{
+                              <div className="match-pair-left" style={{
                                 padding: '1.1rem 1.25rem',
                                 fontSize: '0.95rem',
                                 color: '#0f172a',
@@ -1308,7 +1130,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                               </div>
 
                               {/* Right Cell: Drop Slot */}
-                              <div style={{ padding: '0.85rem 1.25rem', display: 'flex', justifyContent: 'center' }}>
+                              <div className="match-pair-right" style={{ padding: '0.85rem 1.25rem', display: 'flex', justifyContent: 'center' }}>
                                 <div
                                   onClick={() => {
                                     if (filledVal) {
@@ -1771,7 +1593,7 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
           backgroundColor: 'rgba(15, 23, 42, 0.65)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
-          zIndex: 300,
+          zIndex: 99999,
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'center'
@@ -1872,60 +1694,26 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
 
       {/* ── SUBMIT CONFIRMATION MODAL ─────────────────────────────────────── */}
       {showSubmitConfirmModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          zIndex: 200,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }} className="animate-fade-in">
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '20px',
-            padding: '2.25rem',
-            maxWidth: '460px',
-            width: '100%',
-            boxShadow: 'var(--shadow-xl)',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              width: '60px',
-              height: '60px',
-              borderRadius: '50%',
-              backgroundColor: '#fffbeb',
-              color: '#b45309',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 1.25rem auto',
-              border: '2px solid #fde68a'
-            }}>
-              <AlertTriangle size={30} />
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: '460px', width: '100%' }}>
+            <div className="modal-dialog-body">
+              <div className="modal-dialog-icon warning">
+                <AlertTriangle size={28} />
+              </div>
+              <h3 className="modal-dialog-title">Xác Nhận Nộp Bài Thi?</h3>
+              <p className="modal-dialog-text">
+                Bạn đã trả lời <strong style={{ color: '#4f46e5' }}>{answeredCount} / {activeQuestions.length}</strong> câu hỏi.
+                {answeredCount < activeQuestions.length && (
+                  <span style={{ display: 'block', color: '#f43f5e', fontWeight: 700, marginTop: '0.4rem' }}>
+                    ⚠️ Còn {activeQuestions.length - answeredCount} câu chưa trả lời!
+                  </span>
+                )}
+              </p>
             </div>
-
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
-              Xác Nhận Nộp Bài Thi?
-            </h3>
-
-            <p style={{ color: '#475569', fontSize: '0.925rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-              Bạn đã trả lời <strong style={{ color: '#4f46e5' }}>{answeredCount} / {activeQuestions.length}</strong> câu hỏi.
-              {answeredCount < activeQuestions.length && (
-                <span style={{ display: 'block', color: '#f43f5e', fontWeight: 700, marginTop: '0.35rem' }}>
-                  ⚠️ Còn {activeQuestions.length - answeredCount} câu chưa trả lời!
-                </span>
-              )}
-            </p>
-
-            <div style={{ display: 'flex', gap: '0.875rem', justifyContent: 'center' }}>
+            <div className="modal-dialog-actions">
               <button
                 onClick={() => setShowSubmitConfirmModal(false)}
                 className="btn-secondary"
-                style={{ flex: 1, padding: '0.75rem 1rem' }}
               >
                 Tiếp Tục Làm Bài
               </button>
@@ -1935,7 +1723,6 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                   handleFinalSubmit();
                 }}
                 className="btn-success"
-                style={{ flex: 1, padding: '0.75rem 1rem' }}
               >
                 Xác Nhận Nộp
               </button>
@@ -1946,29 +1733,14 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
 
       {/* ── Modal: Lịch Sử & Điểm Số Các Lần Làm Bài ──────────────────────── */}
       {showHistoryModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          zIndex: 250,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }} className="animate-fade-in">
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '24px',
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setShowHistoryModal(false); }}>
+          <div className="modal-content" style={{
             maxWidth: '820px',
             width: '100%',
             maxHeight: '90vh',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: 'var(--shadow-xl)',
-            overflow: 'hidden',
-            border: '1px solid #e2e8f0'
+            overflow: 'hidden'
           }}>
             {/* Modal Header */}
             <div style={{
@@ -2362,60 +2134,27 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
         const isSingleCourse = historyFilterCourseId !== 'ALL' && targetCourse;
 
         return (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            zIndex: 300,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }} className="animate-fade-in">
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '20px',
-              padding: '2rem',
-              maxWidth: '440px',
-              width: '100%',
-              boxShadow: 'var(--shadow-xl)',
-              textAlign: 'center',
-              border: '1px solid #fecdd3'
-            }}>
-              <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: '#fff1f2',
-                color: '#e11d48',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 1.25rem auto',
-                border: '2px solid #fecdd3'
-              }}>
-                <Trash2 size={26} />
+          <div className="modal-backdrop">
+            <div className="modal-content" style={{ maxWidth: '440px', width: '100%' }}>
+              <div className="modal-dialog-body">
+                <div className="modal-dialog-icon danger">
+                  <Trash2 size={26} />
+                </div>
+                <h3 className="modal-dialog-title">
+                  {isSingleCourse
+                    ? `Xóa Lịch Sử Môn ${targetCourse.code}?`
+                    : 'Xác Nhận Xóa Toàn Bộ Lịch Sử?'}
+                </h3>
+                <p className="modal-dialog-text">
+                  {isSingleCourse
+                    ? `Toàn bộ điểm số các lần thi của học phần "${targetCourse.title}" sẽ bị xóa. Lịch sử của các môn học khác vẫn được giữ nguyên an toàn.`
+                    : 'Toàn bộ điểm số, phân tích và đề thi các lần bạn đã làm trên tất cả các học phần sẽ bị xóa vĩnh viễn.'}
+                </p>
               </div>
-
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
-                {isSingleCourse
-                  ? `Xóa Lịch Sử Môn ${targetCourse.code}?`
-                  : 'Xác Nhận Xóa Toàn Bộ Lịch Sử?'}
-              </h3>
-
-              <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.55 }}>
-                {isSingleCourse
-                  ? `Toàn bộ điểm số các lần thi của học phần "${targetCourse.title}" sẽ bị xóa. Lịch sử của các môn học khác vẫn được giữ nguyên an toàn.`
-                  : 'Toàn bộ điểm số, phân tích và đề thi các lần bạn đã làm trên tất cả các học phần sẽ bị xóa vĩnh viễn.'}
-              </p>
-
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <div className="modal-dialog-actions">
                 <button
                   onClick={() => setShowClearHistoryConfirm(false)}
                   className="btn-secondary"
-                  style={{ flex: 1, padding: '0.75rem 1rem' }}
                 >
                   Hủy Bỏ
                 </button>
@@ -2433,7 +2172,8 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
                   style={{
                     flex: 1,
                     padding: '0.75rem 1rem',
-                    borderRadius: '10px',
+                    maxWidth: '200px',
+                    borderRadius: '12px',
                     border: 'none',
                     background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
                     color: '#ffffff',
@@ -2450,6 +2190,168 @@ export default function QuizSystem({ courses, lessons, questions, customSession,
           </div>
         );
       })()}
+
+      {/* ── Modal Chọn Bài Học (Chỉ hiện khi bấm Bắt Đầu Làm Bài cho Test 15p hoặc 30p) ───── */}
+      {showLessonSelectModal && (
+        <div
+          className="modal-backdrop"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowLessonSelectModal(false); }}
+        >
+          <div className="modal-content animate-scale-up" style={{ maxWidth: '480px', width: '100%', padding: '1.75rem' }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.85rem', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '12px',
+                  background: selectedMode === 'TEST_15' ? '#e0f2fe' : '#fef3c7',
+                  color: selectedMode === 'TEST_15' ? '#0284c7' : '#d97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  {selectedMode === 'TEST_15' ? <Clock size={20} /> : <Layers size={20} />}
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                    {selectedMode === 'TEST_15' ? 'Chọn Bài Học (Test 15 Phút)' : 'Chọn Bài Học (Test 30 Phút)'}
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0 0' }}>
+                    {selectedMode === 'TEST_15'
+                      ? 'Chọn 1 bài học để nạp 15 câu hỏi ngẫu nhiên'
+                      : `Chọn từ 1 đến tối đa 3 bài học (${selected30LessonIds.length}/3 bài đã chọn)`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLessonSelectModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', borderRadius: '6px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body: Lesson Cards (Bài 1, Bài 2, ...) */}
+            {courseLessons.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b', fontSize: '0.88rem' }}>
+                Học phần này chưa có bài học nào.
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(92px, 1fr))',
+                gap: '0.65rem',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                padding: '4px',
+                margin: '1.25rem 0'
+              }}>
+                {courseLessons.map((l) => {
+                  const isSelected = selectedMode === 'TEST_15'
+                    ? selectedLessonId === l.id
+                    : selected30LessonIds.includes(l.id);
+                  const isDisabled = selectedMode === 'TEST_30' && !isSelected && selected30LessonIds.length >= 3;
+
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => {
+                        if (selectedMode === 'TEST_15') {
+                          setSelectedLessonId(l.id);
+                        } else {
+                          setSelected30LessonIds(prev => {
+                            if (prev.includes(l.id)) {
+                              if (prev.length === 1) return prev; // Keep at least 1
+                              return prev.filter(id => id !== l.id);
+                            }
+                            if (prev.length >= 3) return prev;
+                            return [...prev, l.id];
+                          });
+                        }
+                      }}
+                      style={{
+                        padding: '0.9rem 0.5rem',
+                        borderRadius: '12px',
+                        border: isSelected ? '2px solid #0084FF' : '1.5px solid #e2e8f0',
+                        backgroundColor: isSelected ? '#eff6ff' : isDisabled ? '#f8fafc' : '#ffffff',
+                        color: isSelected ? '#0084FF' : isDisabled ? '#94a3b8' : '#0f172a',
+                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: isSelected ? '0 4px 12px rgba(0, 132, 255, 0.16)' : 'none',
+                        opacity: isDisabled ? 0.4 : 1,
+                        transform: isSelected ? 'scale(1.02)' : 'scale(1)'
+                      }}
+                    >
+                      <span style={{ fontSize: '0.95rem', fontWeight: 800 }}>
+                        Bài {l.lessonNumber}
+                      </span>
+                      {isSelected && (
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          color: '#059669',
+                          backgroundColor: '#ecfdf5',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}>
+                          <Check size={10} strokeWidth={3} /> Đã chọn
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Modal Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowLessonSelectModal(false)}
+                className="btn-secondary"
+                style={{ padding: '0.7rem 1.3rem', borderRadius: '12px', fontSize: '0.88rem', fontWeight: 700 }}
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleStartTest}
+                disabled={courseLessons.length === 0}
+                className="btn-primary"
+                style={{
+                  padding: '0.7rem 1.5rem',
+                  borderRadius: '12px',
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  background: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)',
+                  boxShadow: '0 4px 14px rgba(0, 132, 255, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  opacity: courseLessons.length === 0 ? 0.5 : 1,
+                  cursor: courseLessons.length === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <span>Bắt Đầu Làm Bài</span>
+                <Play size={15} style={{ fill: '#ffffff' }} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

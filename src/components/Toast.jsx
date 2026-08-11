@@ -40,18 +40,19 @@ const TOAST_TYPES = {
   }
 };
 
-export default function Toast({ toast, onClose }) {
-  if (!toast) return null;
+export default function Toast({ toast, type, title, message, duration: customDuration, onClose }) {
+  const actualToast = toast || (message || title ? { type, title, message, duration: customDuration } : null);
+  if (!actualToast) return null;
 
-  const typeConfig = TOAST_TYPES[toast.type || 'info'] || TOAST_TYPES.info;
-  const duration = toast.duration || 4000;
+  const typeConfig = TOAST_TYPES[actualToast.type || 'info'] || TOAST_TYPES.info;
+  const duration = actualToast.duration || customDuration || 4500;
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      onClose();
+      if (onClose) onClose();
     }, duration);
     return () => clearTimeout(timer);
-  }, [toast, duration, onClose]);
+  }, [actualToast, duration, onClose]);
 
   return (
     <div style={{
@@ -105,13 +106,13 @@ export default function Toast({ toast, onClose }) {
               }}>
                 {typeConfig.badge}
               </span>
-              {toast.title && (
+              {actualToast.title && (
                 <span style={{
                   fontSize: '0.875rem',
                   fontWeight: 800,
                   color: typeConfig.textColor
                 }}>
-                  • {toast.title}
+                  • {actualToast.title}
                 </span>
               )}
             </div>
@@ -123,7 +124,7 @@ export default function Toast({ toast, onClose }) {
               fontWeight: 500,
               wordBreak: 'break-word'
             }}>
-              {toast.message}
+              {actualToast.message}
             </div>
           </div>
 

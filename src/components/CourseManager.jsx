@@ -4,6 +4,7 @@ import {
   CheckCircle2, XCircle, Save, X, AlertTriangle, Eye, FileText
 } from 'lucide-react';
 
+
 const TYPE_LABELS = {
   SINGLE_CHOICE: 'Trắc nghiệm 1 đáp án',
   MULTI_CHOICE: 'Trắc nghiệm nhiều đáp án',
@@ -19,11 +20,30 @@ const TYPE_COLORS = {
 };
 
 export default function CourseManager({ courses, setCourses, lessons, setLessons, questions, setQuestions }) {
+  const [selectedCourseId, setSelectedCourseId] = useState(() => courses[0]?.id || null);
   const [expandedCourses, setExpandedCourses] = useState({});
   const [expandedLessons, setExpandedLessons] = useState({});
   const [modal, setModal] = useState(null); // {type, data, mode}
   const [confirmDelete, setConfirmDelete] = useState(null); // {type, id, name}
   const [editForm, setEditForm] = useState({});
+
+  // Ensure valid selectedCourseId
+  const activeCourse = courses.find(c => c.id === selectedCourseId) || courses[0] || null;
+  const activeLessons = activeCourse ? lessons.filter(l => l.courseId === activeCourse.id) : [];
+
+  const getCourseBadgeColors = (code, index) => {
+    const c = (code || '').toUpperCase();
+    if (c.includes('TRIET') || index % 4 === 0) {
+      return { bg: '#eef2ff', color: '#4f46e5', border: '#e0e7ff' };
+    }
+    if (c.includes('TTHCM') || index % 4 === 1) {
+      return { bg: '#ecfdf5', color: '#059669', border: '#d1fae5' };
+    }
+    if (c.includes('CS') || index % 4 === 2) {
+      return { bg: '#eff6ff', color: '#0284c7', border: '#bfdbfe' };
+    }
+    return { bg: '#faf5ff', color: '#9333ea', border: '#f3e8ff' };
+  };
 
   // Toggle expand state
   const toggleCourse = (id) => setExpandedCourses(p => ({ ...p, [id]: !p[id] }));
@@ -261,175 +281,398 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '1.5rem auto', padding: '0 0.5rem' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>
-            Quản Lý Học Phần & Ngân Hàng Câu Hỏi
-          </h2>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 500 }}>
-            Thêm, chỉnh sửa, xóa và cấu trúc hóa Học phần — Bài học — Câu hỏi trực tiếp.
-          </p>
+    <div className="lms-page-container">
+      {/* Hero Title Section */}
+      <div className="lms-page-hero-header">
+        <div className="hero-eyebrow-badge">
+          <span className="hero-eyebrow-dot" />
+          <span className="hero-eyebrow-text">Cơ Sở Dữ Liệu & Học Phần</span>
         </div>
-        <button onClick={openAddCourse} className="btn-primary" style={{ flexShrink: 0 }}>
-          <Plus size={18} /> Thêm Học Phần Mới
-        </button>
+        <h1 className="hero-title">
+          Quản Lý <span className="hero-gradient-title">Học Phần & Ngân Hàng</span> Đề Thi
+        </h1>
+        <p className="hero-subtitle">
+          Thêm, chỉnh sửa, cấu trúc hóa Học phần — Bài học — Câu hỏi trực tiếp và đồng bộ theo thời gian thực.
+        </p>
+        <div style={{ marginTop: '1.25rem' }}>
+          <button onClick={openAddCourse} className="assist-btn-primary" style={{ padding: '12px 28px', borderRadius: '9999px', margin: '0 auto', fontSize: '0.92rem' }}>
+            <span>Thêm Học Phần Mới</span>
+            <div className="assist-btn-primary-bead">
+              <Plus size={16} style={{ color: '#0084FF' }} />
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Stats bar */}
-      <div className="manager-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
-        {[
-          { label: 'Học phần trong hệ thống', value: courses.length, gradient: 'var(--primary-gradient)', icon: <BookOpen size={20} /> },
-          { label: 'Bài học đã phân chia', value: lessons.length, gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', icon: <Layers size={20} /> },
-          { label: 'Tổng số câu hỏi', value: questions.length, gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', icon: <HelpCircle size={20} /> },
-        ].map((s, i) => (
-          <div key={i} className="lms-card manager-stat-card" style={{ padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: 'var(--shadow-sm)' }}>
-            <div className="manager-stat-icon" style={{ width: '44px', height: '44px', borderRadius: '12px', background: s.gradient, color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', flexShrink: 0 }}>
-              {s.icon}
-            </div>
-            <div>
-              <div className="manager-stat-value" style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>{s.value}</div>
-              <div className="manager-stat-label" style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>{s.label}</div>
-            </div>
+      <div className="lms-stats-grid">
+        <div className="lms-stat-card">
+          <div className="lms-stat-icon-wrapper lms-stat-icon-indigo">
+            <BookOpen size={22} />
           </div>
-        ))}
+          <div style={{ flex: 1 }}>
+            <div className="lms-stat-label">Học phần trong hệ thống</div>
+            <div className="lms-stat-value">{courses.length} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>học phần</span></div>
+          </div>
+        </div>
+
+        <div className="lms-stat-card">
+          <div className="lms-stat-icon-wrapper lms-stat-icon-blue">
+            <Layers size={22} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="lms-stat-label" style={{ color: '#0284c7' }}>Bài học đã phân chia</div>
+            <div className="lms-stat-value" style={{ color: '#0369a1' }}>{lessons.length} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0284c7' }}>bài</span></div>
+          </div>
+        </div>
+
+        <div className="lms-stat-card">
+          <div className="lms-stat-icon-wrapper lms-stat-icon-emerald">
+            <HelpCircle size={22} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="lms-stat-label" style={{ color: '#059669' }}>Tổng số câu hỏi</div>
+            <div className="lms-stat-value" style={{ color: '#065f46' }}>{questions.length} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#059669' }}>câu</span></div>
+          </div>
+        </div>
       </div>
 
-      {/* Course list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {courses.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: '#94a3b8', border: '2px dashed #cbd5e1', borderRadius: '16px', backgroundColor: '#f8fafc' }}>
-            <BookOpen size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-            <p style={{ fontWeight: 600 }}>Chưa có học phần nào. Nhấp "Thêm Học Phần Mới" để bắt đầu.</p>
+      {/* ── 2-Column Master-Detail Layout matching user's design ─────────── */}
+      <div className="cm-container">
+        {/* ── Left Column: Course List Cards ─────────────────────────────── */}
+        <div className="cm-sidebar">
+          <div className="cm-sidebar-header">
+            <span className="cm-sidebar-title">Danh Sách Học Phần ({courses.length})</span>
+            <button
+              onClick={openAddCourse}
+              className="cm-add-btn"
+              style={{ padding: '4px 8px', fontSize: '0.82rem' }}
+            >
+              <Plus size={14} /> Thêm Học Phần
+            </button>
           </div>
-        )}
 
-        {courses.map(course => {
-          const courseLessons = lessons.filter(l => l.courseId === course.id);
-          const courseQCount = questions.filter(q => courseLessons.map(l => l.id).includes(q.lessonId)).length;
-          const isExpanded = expandedCourses[course.id];
+          <div className="cm-course-list">
+            {courses.map((course, idx) => {
+              const courseLessons = lessons.filter(l => l.courseId === course.id);
+              const courseQCount = questions.filter(q => courseLessons.map(l => l.id).includes(q.lessonId)).length;
+              const isSelected = course.id === (activeCourse?.id);
+              const badgeStyle = getCourseBadgeColors(course.code, idx);
 
-          return (
-            <div key={course.id} className="lms-card" style={{ overflow: 'hidden', boxShadow: 'var(--shadow-md)', padding: 0 }}>
-              {/* Course header row */}
-              <div className="course-card-header" style={{ padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.875rem', borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none', backgroundColor: '#fafbff' }}>
-                
-                <div className="course-title-row" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                  <button onClick={() => toggleCourse(course.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', padding: '4px', flexShrink: 0, marginTop: '2px' }}>
-                    {isExpanded ? <ChevronDown size={22} color="#4f46e5" /> : <ChevronRight size={22} />}
-                  </button>
+              return (
+                <div
+                  key={course.id}
+                  className={`cm-course-card ${isSelected ? 'active' : ''}`}
+                  onClick={() => setSelectedCourseId(course.id)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span
+                      className="cm-course-badge"
+                      style={{ backgroundColor: badgeStyle.bg, color: badgeStyle.color, border: `1px solid ${badgeStyle.border}` }}
+                    >
+                      {course.code}
+                    </span>
 
-                  <div className="course-info-block" style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.2rem' }}>
-                      <span style={{ fontWeight: 800, color: '#4f46e5', fontSize: '0.78rem', backgroundColor: '#eef2ff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #c7d2fe', flexShrink: 0 }}>
-                        {course.code}
-                      </span>
-                      <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '1.05rem', lineHeight: 1.35, wordBreak: 'break-word' }}>
-                        {course.title}
-                      </span>
+                    <div
+                      style={{ display: 'flex', gap: '4px' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => openEditCourse(course)}
+                        title="Chỉnh sửa học phần"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete({ type: 'course', id: course.id, name: course.title })}
+                        title="Xóa học phần"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#f43f5e',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>
-                      {courseLessons.length} bài học • {courseQCount} câu hỏi
-                    </div>
+                  </div>
+
+                  <div className="cm-course-title">
+                    {course.title}
+                  </div>
+
+                  <div className="cm-course-meta">
+                    {courseLessons.length} Bài học • {courseQCount} Câu hỏi
+                  </div>
+                </div>
+              );
+            })}
+
+            {courses.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#94a3b8', border: '2px dashed #cbd5e1', borderRadius: '18px', backgroundColor: '#f8fafc' }}>
+                <BookOpen size={36} style={{ marginBottom: '0.5rem', opacity: 0.3 }} />
+                <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>Chưa có học phần nào</div>
+                <button
+                  onClick={openAddCourse}
+                  className="cm-add-btn"
+                  style={{ margin: '0.5rem auto 0', justifyContent: 'center' }}
+                >
+                  + Thêm Học Phần Đầu Tiên
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Right Column: Lessons of the Selected Course ─────────────────── */}
+        <div className="cm-content-panel">
+          {activeCourse ? (
+            <>
+              <div className="cm-content-header">
+                <div>
+                  <h2 className="cm-content-title">
+                    Danh Sách Bài Học Trong Học Phần
+                  </h2>
+                  <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '2px', fontWeight: 500 }}>
+                    Học phần đang chọn: <strong style={{ color: '#0f172a' }}>{activeCourse.code} - {activeCourse.title}</strong>
                   </div>
                 </div>
 
-                <div className="course-actions-group" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-                  <button onClick={() => openAddLesson(course.id)} className="btn-outline-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}>
-                    <Plus size={14} /> Thêm Bài
-                  </button>
-                  <button onClick={() => openEditCourse(course)} className="btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}>
-                    <Pencil size={14} /> Sửa
-                  </button>
-                  <button onClick={() => setConfirmDelete({ type: 'course', id: course.id, name: course.title })} style={{ padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid #fecdd3', backgroundColor: '#fff1f2', color: '#f43f5e', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Trash2 size={14} /> Xóa
-                  </button>
-                </div>
+                <button
+                  onClick={() => openAddLesson(activeCourse.id)}
+                  className="cm-add-btn"
+                >
+                  <Plus size={16} />
+                  <span>Thêm Bài Học Mới</span>
+                </button>
               </div>
 
-              {/* Lessons list */}
-              {isExpanded && (
-                <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.625rem', backgroundColor: '#f8fafc' }}>
-                  {courseLessons.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>
-                      Chưa có bài học nào trong học phần này.
-                    </div>
-                  )}
-
-                  {courseLessons.map(lesson => {
+              {activeLessons.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: '#64748b', border: '2px dashed #e2e8f0', borderRadius: '16px', backgroundColor: '#f8fafc' }}>
+                  <Layers size={42} style={{ color: '#94a3b8', marginBottom: '0.75rem', opacity: 0.5 }} />
+                  <div style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>Chưa có bài học nào trong học phần này</div>
+                  <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0.35rem 0 1.25rem 0' }}>Bấm nút bên dưới để bắt đầu tạo Bài 1</p>
+                  <button
+                    onClick={() => openAddLesson(activeCourse.id)}
+                    className="assist-btn-primary"
+                    style={{ padding: '8px 18px', fontSize: '0.85rem', borderRadius: '10px', margin: '0 auto' }}
+                  >
+                    <Plus size={15} /> Thêm Bài Học 1
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {activeLessons.map(lesson => {
                     const lessonQs = questions.filter(q => q.lessonId === lesson.id);
                     const isLessonExpanded = expandedLessons[lesson.id];
 
                     return (
-                      <div key={lesson.id} style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#ffffff' }}>
-                        {/* Lesson row */}
-                        <div className="lesson-card-header" style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.625rem', backgroundColor: isLessonExpanded ? '#f1f5f9' : '#ffffff' }}>
-                          <div className="lesson-title-row" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flex: 1, minWidth: 0 }}>
-                            <button onClick={() => toggleLesson(lesson.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', flexShrink: 0 }}>
-                              {isLessonExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                            </button>
-
-                            <span style={{ width: '26px', height: '26px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#475569', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800, flexShrink: 0 }}>
-                              {lesson.lessonNumber}
-                            </span>
-
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.88rem', wordBreak: 'break-word' }}>{lesson.title}</div>
-                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{lessonQs.length} câu hỏi</div>
-                            </div>
+                      <div
+                        key={lesson.id}
+                        className={`cm-lesson-item ${isLessonExpanded ? 'expanded' : ''}`}
+                      >
+                        {/* ── Main Lesson Header Row (Matching Screenshot) ── */}
+                        <div
+                          className="cm-lesson-header"
+                          onClick={() => toggleLesson(lesson.id)}
+                        >
+                          <div className="cm-lesson-left">
+                            <span className="cm-lesson-prefix">Bài {lesson.lessonNumber}:</span>
+                            <span className="cm-lesson-text">{lesson.title}</span>
                           </div>
 
-                          <div className="lesson-actions-group" style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
-                            <button onClick={() => openAddQuestion(lesson.id)} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '4px 8px', borderRadius: '6px', border: '1px solid #d1fae5', backgroundColor: '#ecfdf5', color: '#047857', fontSize: '0.73rem', fontWeight: 700, cursor: 'pointer' }}>
-                              <Plus size={11} /> Thêm Câu
-                            </button>
-                            <button onClick={() => openEditLesson(lesson)} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#475569', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <Pencil size={11} /> Sửa
-                            </button>
-                            <button onClick={() => setConfirmDelete({ type: 'lesson', id: lesson.id, name: lesson.title })} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '0.73rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <Trash2 size={11} /> Xóa
-                            </button>
+                          <div className="cm-lesson-right">
+                            <span className="cm-lesson-count">{lessonQs.length} câu hỏi</span>
+
+                            <div
+                              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => openAddQuestion(lesson.id)}
+                                title="Thêm câu hỏi vào bài này"
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #d1fae5',
+                                  backgroundColor: '#ecfdf5',
+                                  color: '#047857',
+                                  fontSize: '0.73rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <Plus size={12} /> Thêm câu
+                              </button>
+
+                              <button
+                                onClick={() => openEditLesson(lesson)}
+                                title="Sửa tên bài học"
+                                style={{
+                                  padding: '4px 7px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #e2e8f0',
+                                  backgroundColor: '#ffffff',
+                                  color: '#475569',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                <Pencil size={12} />
+                              </button>
+
+                              <button
+                                onClick={() => setConfirmDelete({ type: 'lesson', id: lesson.id, name: lesson.title })}
+                                title="Xóa bài học"
+                                style={{
+                                  padding: '4px 7px',
+                                  borderRadius: '6px',
+                                  border: '1px solid #fecdd3',
+                                  backgroundColor: '#fff1f2',
+                                  color: '#e11d48',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+
+                            <div style={{ color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                              {isLessonExpanded ? <ChevronDown size={18} color="#0084FF" /> : <ChevronRight size={18} />}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Questions list */}
+                        {/* ── Expanded Question Bank Drawer ── */}
                         {isLessonExpanded && (
-                          <div style={{ borderTop: '1px solid #e2e8f0', padding: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', backgroundColor: '#fdfdfd' }}>
-                            {lessonQs.length === 0 && (
-                              <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.82rem' }}>
-                                Chưa có câu hỏi. Nhấp "Thêm Câu" hoặc Upload file đề.
+                          <div style={{
+                            borderTop: '1px solid #f1f5f9',
+                            padding: '1rem 1.25rem',
+                            backgroundColor: '#fafcff',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.65rem'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
+                                Ngân hàng {lessonQs.length} câu hỏi thuộc Bài {lesson.lessonNumber}:
+                              </span>
+                              <button
+                                onClick={() => openAddQuestion(lesson.id)}
+                                className="cm-add-btn"
+                                style={{ padding: '2px 8px', fontSize: '0.78rem' }}
+                              >
+                                <Plus size={13} /> Thêm câu hỏi
+                              </button>
+                            </div>
+
+                            {lessonQs.length === 0 ? (
+                              <div style={{ textAlign: 'center', padding: '1.25rem', color: '#94a3b8', fontSize: '0.84rem' }}>
+                                Chưa có câu hỏi nào trong bài học này. Nhấp "Thêm câu hỏi" để nhập câu mới hoặc dùng tính năng Bóc Tách File.
                               </div>
+                            ) : (
+                              lessonQs.map((q, qIdx) => (
+                                <div
+                                  key={q.id}
+                                  style={{
+                                    padding: '0.75rem 1rem',
+                                    borderRadius: '10px',
+                                    border: '1px solid #e2e8f0',
+                                    backgroundColor: '#ffffff',
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: '0.85rem'
+                                  }}
+                                >
+                                  <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0084FF', minWidth: '22px', paddingTop: '2px' }}>
+                                    #{qIdx + 1}
+                                  </span>
+
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#0f172a', lineHeight: 1.45, wordBreak: 'break-word' }}>
+                                      {q.content}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                                      <span style={{
+                                        fontSize: '0.7rem',
+                                        fontWeight: 800,
+                                        backgroundColor: (TYPE_COLORS[q.type] || '#4f46e5') + '15',
+                                        color: TYPE_COLORS[q.type] || '#4f46e5',
+                                        padding: '2px 8px',
+                                        borderRadius: '4px'
+                                      }}>
+                                        {TYPE_LABELS[q.type] || q.type}
+                                      </span>
+                                      {q.options && (
+                                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                                          {q.options.length} lựa chọn • {q.options.filter(o => o.isCorrect).length} đáp án đúng
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                                    <button
+                                      onClick={() => openEditQuestion(q)}
+                                      style={{
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #e2e8f0',
+                                        backgroundColor: '#f8fafc',
+                                        color: '#475569',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px'
+                                      }}
+                                    >
+                                      <Pencil size={11} /> Sửa
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmDelete({ type: 'question', id: q.id, name: q.content?.slice(0, 40) })}
+                                      style={{
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #fecdd3',
+                                        backgroundColor: '#fff1f2',
+                                        color: '#e11d48',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '3px'
+                                      }}
+                                    >
+                                      <Trash2 size={11} /> Xóa
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
                             )}
-
-                            {lessonQs.map((q, qIdx) => (
-                              <div key={q.id} className="question-item-card" style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #f1f5f9', backgroundColor: '#ffffff', display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', minWidth: '20px', paddingTop: '2px' }}>
-                                  {qIdx + 1}
-                                </span>
-
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a', lineHeight: 1.4, wordBreak: 'break-word' }}>
-                                    {q.content?.length > 120 ? q.content.slice(0, 120) + '...' : q.content}
-                                  </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                                    <span style={{ fontSize: '0.68rem', fontWeight: 800, backgroundColor: TYPE_COLORS[q.type] + '18', color: TYPE_COLORS[q.type], padding: '2px 8px', borderRadius: '4px' }}>
-                                      {TYPE_LABELS[q.type] || q.type}
-                                    </span>
-                                    {q.options && <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{q.options.length} lựa chọn • {q.options.filter(o => o.isCorrect).length} đáp án đúng</span>}
-                                  </div>
-                                </div>
-
-                                <div className="question-item-actions" style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
-                                  <button onClick={() => openEditQuestion(q)} style={{ padding: '4px 8px', borderRadius: '5px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#475569', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                    <Pencil size={11} /> Sửa
-                                  </button>
-                                  <button onClick={() => setConfirmDelete({ type: 'question', id: q.id, name: q.content?.slice(0, 40) })} style={{ padding: '4px 8px', borderRadius: '5px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                    <Trash2 size={11} /> Xóa
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
                           </div>
                         )}
                       </div>
@@ -437,9 +680,14 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
                   })}
                 </div>
               )}
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8' }}>
+              <BookOpen size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+              <p style={{ fontWeight: 600 }}>Vui lòng chọn hoặc tạo một học phần ở cột bên trái để quản lý danh sách bài học.</p>
             </div>
-          );
-        })}
+          )}
+        </div>
       </div>
 
       {/* ── MODAL: Course ────────────────────────────────────────────────────── */}
@@ -669,25 +917,23 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
 
       {/* ── Confirm Delete Dialog ────────────────────────────────────────────── */}
       {confirmDelete && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.65)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '2rem', maxWidth: '420px', width: '100%', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: '#fef2f2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AlertTriangle size={22} />
+        <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setConfirmDelete(null); }}>
+          <div className="modal-content" style={{ maxWidth: '440px', width: '100%' }}>
+            <div className="modal-dialog-body">
+              <div className="modal-dialog-icon danger">
+                <AlertTriangle size={26} />
               </div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#0f172a' }}>Xác nhận xóa</div>
-                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Hành động này không thể hoàn tác</div>
-              </div>
+              <h3 className="modal-dialog-title">Xác Nhận Xóa?</h3>
+              <p className="modal-dialog-text">
+                Bạn có chắc muốn xóa <strong>"{confirmDelete.name}"</strong>?
+                {confirmDelete.type === 'course' && ' Tất cả bài học và câu hỏi bên trong sẽ bị xóa theo.'}
+                {confirmDelete.type === 'lesson' && ' Tất cả câu hỏi trong bài học này sẽ bị xóa theo.'}
+                <span style={{ display: 'block', color: '#f43f5e', fontSize: '0.8rem', marginTop: '0.4rem', fontWeight: 600 }}>
+                  ⚠️ Hành động này không thể hoàn tác.
+                </span>
+              </p>
             </div>
-
-            <p style={{ color: '#334155', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-              Bạn có chắc muốn xóa <strong>"{confirmDelete.name}"</strong>?
-              {confirmDelete.type === 'course' && ' Tất cả bài học và câu hỏi bên trong sẽ bị xóa theo.'}
-              {confirmDelete.type === 'lesson' && ' Tất cả câu hỏi trong bài học này sẽ bị xóa theo.'}
-            </p>
-
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <div className="modal-dialog-actions">
               <button onClick={() => setConfirmDelete(null)} className="btn-secondary">Hủy bỏ</button>
               <button
                 onClick={() => {
@@ -695,8 +941,17 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
                   else if (confirmDelete.type === 'lesson') deleteLesson(confirmDelete.id);
                   else deleteQuestion(confirmDelete.id);
                 }}
-                style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', border: 'none', backgroundColor: '#dc2626', color: '#fff', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Trash2 size={16} /> Xóa vĩnh viễn
+                style={{
+                  flex: 1, maxWidth: '200px', padding: '0.75rem 1rem',
+                  borderRadius: '12px', border: 'none',
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                  color: '#fff', fontWeight: 700, fontSize: '0.875rem',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: '0.4rem',
+                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)'
+                }}
+              >
+                <Trash2 size={15} /> Xóa vĩnh viễn
               </button>
             </div>
           </div>
@@ -709,40 +964,47 @@ export default function CourseManager({ courses, setCourses, lessons, setLessons
 // ── Reusable modal components ──────────────────────────────────────────────────
 function ModalWrapper({ title, onClose, children, wide = false }) {
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.65)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      zIndex: 150,
-      display: 'flex',
-      alignItems: 'flex-start',
-      justifyContent: 'center',
-      padding: '2.5rem 1rem',
-      overflowY: 'auto'
-    }} className="animate-fade-in">
+    <div
+      className="modal-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
-        className="modal-responsive-card"
+        className="modal-content"
         style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '20px',
-          padding: '2.25rem',
+          padding: '2rem 2.25rem',
           width: '100%',
           maxWidth: wide ? '720px' : '520px',
-          boxShadow: 'var(--shadow-xl)',
-          overflowY: 'auto'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>{title}</h3>
-          <button onClick={onClose} style={{ padding: '6px', borderRadius: '8px', border: 'none', cursor: 'pointer', backgroundColor: '#f1f5f9', color: '#64748b' }}><X size={18} /></button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', paddingBottom: '0.85rem', borderBottom: '1.5px solid #f1f5f9' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>{title}</h3>
+          <button
+            onClick={onClose}
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '10px',
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: '#f1f5f9',
+              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <X size={18} />
+          </button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>{children}</div>
       </div>
     </div>
   );
 }
+
 
 function FormField({ label, required, children }) {
   return (

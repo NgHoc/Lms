@@ -260,8 +260,8 @@ export default function QuizResult({ result, course, mode, onRetake }) {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '1rem' }}>
-                  <div style={{ fontWeight: 800, fontSize: '1rem', color: '#0f172a', lineHeight: 1.5, flex: 1 }}>
-                    <span style={{ color: '#4f46e5', marginRight: '0.5rem' }}>
+                  <div style={{ fontWeight: 600, fontSize: '1.02rem', color: '#1e293b', lineHeight: 1.65, letterSpacing: '-0.2px', flex: 1 }}>
+                    <span style={{ color: '#4f46e5', fontWeight: 800, marginRight: '0.5rem' }}>
                       Câu {originalIndex + 1}:
                     </span>
                     {q.content}
@@ -296,10 +296,12 @@ export default function QuizResult({ result, course, mode, onRetake }) {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            fontSize: '0.875rem'
+                            fontSize: '0.88rem',
+                            lineHeight: 1.6,
+                            letterSpacing: '-0.15px'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#0f172a', fontWeight: isOptionCorrect || userSelected ? 700 : 500 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#334155', fontWeight: isOptionCorrect || userSelected ? 600 : 400 }}>
                             <strong style={{ color: isOptionCorrect ? '#10b981' : '#64748b' }}>{opt.key}.</strong>
                             {opt.text}
                           </div>

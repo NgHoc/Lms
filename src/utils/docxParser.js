@@ -135,7 +135,7 @@ export async function parseDocxFile(file) {
         const correctCount = options.filter(o => o.isCorrect).length;
         const txtLower = questionContent.toLowerCase();
         let qType = "SINGLE_CHOICE";
-        if (correctCount > 1 || txtLower.includes("chọn 2") || txtLower.includes("nhiều đáp án")) {
+        if (correctCount > 1 || /chọn \d+/.test(txtLower) || txtLower.includes("nhiều đáp án")) {
           qType = "MULTI_CHOICE";
         }
 
@@ -522,8 +522,8 @@ function extractPara(pEl) {
   const isAllRed = totalLen > 0 && (redLen / totalLen) >= 0.85;
   const textLower = text.toLowerCase().trim();
   const isTFLabel = textLower === "đúng" || textLower === "sai";
-  const optADMatch = text.match(/^([A-D])[\.\)\:\-]\s+([\s\S]+)/i);
-  const optNumMatch = text.match(/^(\d+)[\.\)]\s+([\s\S]+)/);
+  const optADMatch = text.match(/^([A-D])[\.\)\:\-]\s*([\s\S]+)/i);
+  const optNumMatch = text.match(/^(\d+)[\.\)]\s*([\s\S]+)/);
   const isQuestion = /^(Câu\s*\d+|Câu hỏi\s*\d+)[\:\.]?\s*/i.test(text);
 
   return {
