@@ -3,17 +3,6 @@
   <strong>Hệ thống quản lý học tập, bóc tách đề thi tự động từ file Word (.docx) và luyện thi trắc nghiệm thông minh offline-first.</strong>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/React-18.2.0-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
-  <img src="https://img.shields.io/badge/Vite-5.1.6-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
-  <img src="https://img.shields.io/badge/JSZip-3.10.1-FF6600?style=for-the-badge&logo=javascript&logoColor=white" alt="JSZip" />
-  <img src="https://img.shields.io/badge/Lucide_Icons-0.344.0-F97316?style=for-the-badge" alt="Lucide React" />
-  <img src="https://img.shields.io/badge/Storage-LocalStorage%20v2-10B981?style=for-the-badge" alt="LocalStorage" />
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
-</p>
-
----
-
 ## 📑 Mục Lục
 
 - [🌟 Giới Thiệu Dự Án](#-giới-thiệu-dự-án)
