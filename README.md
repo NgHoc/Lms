@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+=======
+# 🎓 NgHoc - Nền Tảng Ôn Thi & Trắc Nghiệm Thông Minh
+
+<p align="center">
+  <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80" alt="NgHoc Banner" width="100%" style="border-radius: 12px; max-height: 350px; object-fit: cover;" />
+</p>
+>>>>>>> 405ffec3aedf49b46e79b2309df8560341f3d1b7
 
 <p align="center">
   <strong>Hệ thống quản lý học tập, bóc tách đề thi tự động từ file Word (.docx) và luyện thi trắc nghiệm thông minh offline-first.</strong>
